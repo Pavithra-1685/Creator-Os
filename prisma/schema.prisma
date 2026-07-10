@@ -1,0 +1,135 @@
+// Prisma schema for CreatorOS (initial models)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CREATOR
+  EDITOR
+  MANAGER
+  FINANCE_MANAGER
+  ADMIN
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  password          String
+  role              Role     @default(CREATOR)
+  isEmailVerified   Boolean  @default(false)
+  profileImage      String? 
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  refreshTokens     RefreshToken[]
+  verificationTokens VerificationToken[]
+  scripts           Script[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Script {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  version   Int      @default(1)
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ContentItem {
+  id           String   @id @default(cuid())
+  title        String
+  type         String
+  status       String   @default("IDEA")
+  scheduledFor DateTime?
+  notes        String?
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId, scheduledFor])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      String   @default("TODO")
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, dueDate])
+}
+
+model Goal {
+  id           String   @id @default(cuid())
+  title        String
+  targetValue  Int
+  currentValue Int      @default(0)
+  unit         String
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  title       String
+  message     String
+  isRead      Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, isRead])
+}
+
+model Asset {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  mimeType    String?
+  size        Int?
+  tags        String[]
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  type      TokenType
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
