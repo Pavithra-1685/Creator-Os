@@ -16,10 +16,13 @@ const register = async ({ email, password, name, role }) => {
   const existing = await userRepo.findUserByEmail(email);
   if (existing) throw { status: 400, message: 'Email already in use' };
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
-  const user = await userRepo.createUser({ email, password: hashed, name, role });
+  const isEmailVerified = process.env.NODE_ENV !== 'production';
+  const user = await userRepo.createUser({ email, password: hashed, name, role, isEmailVerified });
   const tokens = await jwt.generateAuthTokens({ userId: user.id });
   await userRepo.saveRefreshToken({ token: tokens.refreshToken, userId: user.id, expiresAt: tokens.refreshExpiresAt });
-  await sendVerificationEmail({ user });
+  if (!isEmailVerified) {
+    await sendVerificationEmail({ user });
+  }
   return { user, tokens };
 };
 

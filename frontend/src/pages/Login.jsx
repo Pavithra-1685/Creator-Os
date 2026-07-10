@@ -10,10 +10,12 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
@@ -22,34 +24,60 @@ export default function Login() {
         body: JSON.stringify({ email, password }),
       });
       const result = await response.json();
+      setLoading(false);
+      
       if (!response.ok) {
         setError(result.message || 'Login failed');
         return;
       }
+      
       login(result.data.tokens.accessToken);
       navigate('/dashboard');
     } catch (err) {
-      setError('Network error');
+      setLoading(false);
+      setError('Network error: Is the backend server running?');
     }
   };
 
   return (
-    <div className="page">
-      <div className="card">
-        <h1>Login</h1>
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="auth-logo">CreatorOS</div>
+        <div className="auth-subtitle">Your ultimate creator dashboard awaits</div>
+        
+        {error && <div className="error-message">{error}</div>}
+        
         <form onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
-          </label>
-          <label>
-            Password
-            <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
-          </label>
-          <button type="submit">Sign In</button>
+          <div className="form-group">
+            <label className="form-label">Email Address</label>
+            <input 
+              className="form-input"
+              placeholder="name@creator.com"
+              value={email} 
+              onChange={(e) => setEmail(e.target.value)} 
+              type="email" 
+              required
+            />
+          </div>
+          
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input 
+              className="form-input"
+              placeholder="••••••••"
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              type="password" 
+              required
+            />
+          </div>
+          
+          <button className="btn-primary" type="submit" disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In'}
+          </button>
         </form>
-        {error && <div className="error">{error}</div>}
-        <p className="secondary-text">
+        
+        <p className="auth-footer">
           Don't have an account? <Link to="/register">Register</Link>
         </p>
       </div>
