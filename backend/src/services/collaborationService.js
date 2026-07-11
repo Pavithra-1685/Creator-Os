@@ -30,6 +30,10 @@ const deleteNotification = async (id, userId) => {
   return prisma.notification.deleteMany({ where: { id, userId } });
 };
 
+const clearAllNotifications = async (userId) => {
+  return prisma.notification.deleteMany({ where: { userId } });
+};
+
 // ──── TASKS ────
 
 const getTasks = async (userId, { status, priority, page = 1, limit = 20, teamId, assigneeId }) => {
@@ -118,7 +122,7 @@ const removeMember = async (teamId, ownerId, memberId) => {
 };
 
 module.exports = {
-  getNotifications, createNotification, markAsRead, markAllAsRead, deleteNotification,
+  getNotifications, createNotification, markAsRead, markAllAsRead, deleteNotification, clearAllNotifications,
   getTasks, createTask, updateTask, deleteTask, addComment,
   getTeams, createTeam, inviteToTeam, removeMember,
 };

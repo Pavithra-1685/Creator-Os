@@ -100,6 +100,7 @@ export default function Register() {
               <option value="VIDEO_EDITOR">Video Editor</option>
               <option value="THUMBNAIL_DESIGNER">Thumbnail Designer</option>
               <option value="SCRIPT_WRITER">Script Writer</option>
+              <option value="FINANCE_MANAGER">Finance Manager</option>
             </select>
           </div>
 

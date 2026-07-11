@@ -103,6 +103,45 @@ export default function Dashboard() {
     version: 1
   });
 
+  // Interactive UI / Drawer / Dropdown States
+  const [showNotifDrawer, setShowNotifDrawer] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+  // Profile Settings Form State
+  const [profileSubTab, setProfileSubTab] = useState('edit');
+  const [profileEditForm, setProfileEditForm] = useState({
+    name: '',
+    bio: '',
+    niche: '',
+    socialYoutube: '',
+    socialInstagram: '',
+    socialTiktok: '',
+    role: 'CREATOR'
+  });
+
+  const addToast = (message, type = 'info') => {
+    const id = Date.now() + Math.random().toString();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  const triggerConfirm = (title, message, onConfirm) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null });
+      }
+    });
+  };
+
   const getToken = () => localStorage.getItem('creatoros_access_token');
 
   const readJson = async (response) => {
@@ -283,6 +322,31 @@ export default function Dashboard() {
       socket.disconnect();
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (user) {
+      setProfileEditForm({
+        name: user.name || '',
+        bio: user.bio || '',
+        niche: user.niche || '',
+        socialYoutube: user.socialYoutube || '',
+        socialInstagram: user.socialInstagram || '',
+        socialTiktok: user.socialTiktok || '',
+        role: user.role || 'CREATOR'
+      });
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowNotifDrawer(false);
+        setShowProfileDropdown(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Post new Content item
   const handleAddContent = async (e) => {
@@ -537,6 +601,712 @@ export default function Dashboard() {
     navigate('/login');
   };
 
+  const roleTabs = {
+    CREATOR: ['home', 'content', 'ai', 'brands', 'finance', 'assets', 'analytics', 'goals', 'script'],
+    VIDEO_EDITOR: ['home', 'content', 'assets', 'script'],
+    SCRIPT_WRITER: ['home', 'ai', 'script', 'content'],
+    THUMBNAIL_DESIGNER: ['home', 'assets', 'content'],
+    MANAGER: ['home', 'brands', 'analytics', 'finance'],
+    ADMIN: ['home', 'content', 'ai', 'brands', 'finance', 'assets', 'analytics', 'goals', 'script'],
+    FINANCE_MANAGER: ['home', 'finance', 'analytics']
+  };
+
+  const menuItems = [
+    { id: 'home', label: 'Dashboard', icon: <BarChartIcon size={18} /> },
+    { id: 'content', label: 'Content Calendar', icon: <CalendarIcon size={18} /> },
+    { id: 'ai', label: 'AI Assistant', icon: <BotIcon size={18} /> },
+    { id: 'brands', label: 'Brand Deals', icon: <BriefcaseIcon size={18} /> },
+    { id: 'finance', label: 'Revenue & Expenses', icon: <WalletIcon size={18} /> },
+    { id: 'assets', label: 'Assets', icon: <ImageIcon size={18} /> },
+    { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={18} /> },
+    { id: 'goals', label: 'Goals', icon: <TargetIcon size={18} /> },
+    { id: 'script', label: 'Script Workspace', icon: <FileTextIcon size={18} /> }
+  ];
+
+  const getRoleLabel = (role) => {
+    const mapping = {
+      CREATOR: 'Content Creator',
+      MANAGER: 'Manager',
+      VIDEO_EDITOR: 'Video Editor',
+      THUMBNAIL_DESIGNER: 'Thumbnail Designer',
+      SCRIPT_WRITER: 'Script Writer',
+      ADMIN: 'Administrator',
+      FINANCE_MANAGER: 'Finance Manager'
+    };
+    return mapping[role] || 'Creator';
+  };
+
+  const userRole = user?.role || 'CREATOR';
+  const allowedTabs = roleTabs[userRole] || roleTabs['CREATOR'];
+  const userName = user?.name || user?.email?.split('@')[0] || 'Arjun';
+  const userAvatarLetter = userName.charAt(0).toUpperCase();
+
+  const handleNotificationClick = async (notif) => {
+    setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+    const token = getToken();
+    if (token && notif.id) {
+      try {
+        await fetch(`${API_URL}/collaboration/notifications/${notif.id}/read`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error('Failed to mark notification as read:', err);
+      }
+    }
+    if (notif.type === 'PAYMENT_REMINDER') {
+      setActiveTab('finance');
+    } else if (notif.type === 'PUBLISH_REMINDER' || notif.type === 'EDITING_DEADLINE') {
+      setActiveTab('content');
+    } else if (notif.type === 'BRAND_DEAL_DEADLINE') {
+      setActiveTab('brands');
+    } else if (notif.type === 'GOAL_ACHIEVED') {
+      setActiveTab('goals');
+    } else if (notif.type === 'AI_SUGGESTION') {
+      setActiveTab('ai');
+    }
+  };
+
+  const renderCalendarWidget = () => (
+    <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+      <div className="panel-card-header" style={{ borderBottom: 'none', marginBottom: '10px' }}>
+        <h3 className="panel-card-title"> Content Calendar</h3>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn-secondary" style={{ padding: '6px 12px' }}>WEEK</button>
+          <button className="btn-secondary" style={{ padding: '6px 12px' }}>MONTH</button>
+        </div>
+      </div>
+      <div className="calendar-grid">
+        {getWeekDays().map((day) => (
+          <div key={day.toISOString()} className={`calendar-cell ${day.toDateString() === new Date().toDateString() ? 'today' : ''}`}>
+            <div className="calendar-date-number">
+              {day.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' })}
+            </div>
+            {getContentForDate(day).slice(0, 3).map(item => (
+              <div key={item.id} className="platform-tag youtube" style={{ fontSize: '0.65rem', padding: '2px' }}>
+                {item.title}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <button className="btn-secondary" style={{ width: '100%', marginTop: '16px', borderStyle: 'dashed' }} onClick={(e) => { e.stopPropagation(); setModalType('content'); setShowAddModal(true); }}>
+        + ADD CONTENT
+      </button>
+    </div>
+  );
+
+  const renderNotificationsWidget = () => (
+    <div className="panel-card">
+      <div className="panel-card-header">
+        <h3 className="panel-card-title"><BellIcon size={20} /> Notifications</h3>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {notifications.length === 0 ? (
+          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600' }}>No notifications yet.</div>
+        ) : notifications.map((n, idx) => {
+          const bg = ['var(--yellow)', 'var(--mint)', 'var(--pink-soft)', 'var(--lavender)'];
+          const NotificationIcon = notificationIconMap[n.type] || BellIcon;
+          return (
+            <div key={n.id || idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', cursor: 'pointer' }} onClick={() => handleNotificationClick(n)}>
+              <div style={{ background: bg[idx % bg.length], border: '2px solid #111111', padding: '6px', borderRadius: '8px', flexShrink: 0, display: 'flex' }}>
+                <NotificationIcon size={16} />
+              </div>
+              <div style={{ opacity: n.isRead ? 0.6 : 1 }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800', textDecoration: n.isRead ? 'line-through' : 'none' }}>{n.title}</div>
+                <div style={{ fontSize: '0.8rem', color: '#555555' }}>{n.message}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const renderRoleStatCards = (role) => {
+    switch (role) {
+      case 'VIDEO_EDITOR':
+        return (
+          <div className="dashboard-grid">
+            <div className="stat-card-row">
+              <div className="stat-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <div className="stat-header">
+                  <span className="stat-title">Assigned Editing Tasks</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><FileTextIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{contentItems.filter(c => c.status === 'EDITING').length}</div>
+                <div className="stat-change"><span>Currently in editing status</span></div>
+              </div>
+              <div className="stat-card highlight-yellow" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <div className="stat-header">
+                  <span className="stat-title">Pending Videos</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><VideoIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{contentItems.filter(c => c.status !== 'PUBLISHED').length}</div>
+                <div className="stat-change"><span>Awaiting production completion</span></div>
+              </div>
+              <div className="stat-card highlight-peach" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('script')}>
+                <div className="stat-header">
+                  <span className="stat-title">Script Files</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><FileTextIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{scripts.length}</div>
+                <div className="stat-change"><span>Collaborative scripts online</span></div>
+              </div>
+              <div className="stat-card highlight-lavender" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
+                <div className="stat-header">
+                  <span className="stat-title">Uploaded Assets</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><ImageIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{assets.length}</div>
+                <div className="stat-change"><span>Raw media & edits</span></div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'SCRIPT_WRITER':
+        return (
+          <div className="dashboard-grid">
+            <div className="stat-card-row">
+              <div className="stat-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('script')}>
+                <div className="stat-header">
+                  <span className="stat-title">Assigned Scripts</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><FileTextIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{scripts.filter(s => s.status === 'DRAFT' || s.status === 'IN_PROGRESS').length || scripts.length}</div>
+                <div className="stat-change"><span>Drafting or outlining in progress</span></div>
+              </div>
+              <div className="stat-card highlight-yellow" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('script')}>
+                <div className="stat-header">
+                  <span className="stat-title">Drafts</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><FileTextIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{scripts.filter(s => s.status === 'DRAFT').length}</div>
+                <div className="stat-change"><span>Initial outlines & drafts</span></div>
+              </div>
+              <div className="stat-card highlight-peach" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('ai')}>
+                <div className="stat-header">
+                  <span className="stat-title">AI Assistant</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><BotIcon size={18} /></div>
+                </div>
+                <div className="stat-value">Active</div>
+                <div className="stat-change"><span>AI hook & script co-pilot</span></div>
+              </div>
+              <div className="stat-card highlight-lavender" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <div className="stat-header">
+                  <span className="stat-title">Upcoming Posts</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><VideoIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{contentItems.length}</div>
+                <div className="stat-change"><span>Total content calendar items</span></div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'THUMBNAIL_DESIGNER':
+        return (
+          <div className="dashboard-grid">
+            <div className="stat-card-row">
+              <div className="stat-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
+                <div className="stat-header">
+                  <span className="stat-title">Thumbnail Requests</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><ImageIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{contentItems.filter(c => c.status === 'THUMBNAIL').length}</div>
+                <div className="stat-change"><span>Awaiting thumbnail design</span></div>
+              </div>
+              <div className="stat-card highlight-yellow" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <div className="stat-header">
+                  <span className="stat-title">Design Queue</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><CalendarIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{contentItems.filter(c => c.status !== 'PUBLISHED' && c.status !== 'SCHEDULED').length}</div>
+                <div className="stat-change"><span>In-progress production pipeline</span></div>
+              </div>
+              <div className="stat-card highlight-peach" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
+                <div className="stat-header">
+                  <span className="stat-title">Brand Assets</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><BriefcaseIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{assets.filter(a => a.type === 'IMAGE').length}</div>
+                <div className="stat-change"><span>Images, logos & resources</span></div>
+              </div>
+              <div className="stat-card highlight-lavender" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
+                <div className="stat-header">
+                  <span className="stat-title">Completed Designs</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><ImageIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{assets.length}</div>
+                <div className="stat-change"><span>Total uploaded assets</span></div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'MANAGER':
+        return (
+          <div className="dashboard-grid">
+            <div className="stat-card-row">
+              <div className="stat-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('brands')}>
+                <div className="stat-header">
+                  <span className="stat-title">Brand Campaigns</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><BriefcaseIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{brandDeals.length}</div>
+                <div className="stat-change"><span>Total brand campaigns</span></div>
+              </div>
+              <div className="stat-card highlight-yellow" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="stat-header">
+                  <span className="stat-title">Revenue Summary</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><WalletIcon size={18} /></div>
+                </div>
+                <div className="stat-value">Rs. {getFinanceSummary().revenue.toLocaleString('en-IN')}</div>
+                <div className="stat-change"><span>Net Profit: Rs. {getFinanceSummary().net.toLocaleString('en-IN')}</span></div>
+              </div>
+              <div className="stat-card highlight-peach" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <div className="stat-header">
+                  <span className="stat-title">Team Tasks</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><UsersIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{contentItems.length}</div>
+                <div className="stat-change"><span>Content workflow pipeline tasks</span></div>
+              </div>
+              <div className="stat-card highlight-lavender" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>
+                <div className="stat-header">
+                  <span className="stat-title">Analytics Overview</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><BarChartIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{formatCompactNumber(analyticsData.views)}</div>
+                <div className="stat-change"><span>Total monthly views</span></div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'FINANCE_MANAGER':
+        return (
+          <div className="dashboard-grid">
+            <div className="stat-card-row">
+              <div className="stat-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="stat-header">
+                  <span className="stat-title">Total Revenue</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><WalletIcon size={18} /></div>
+                </div>
+                <div className="stat-value">Rs. {getFinanceSummary().revenue.toLocaleString('en-IN')}</div>
+                <div className="stat-change"><span>All recorded revenue streams</span></div>
+              </div>
+              <div className="stat-card highlight-yellow" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="stat-header">
+                  <span className="stat-title">Total Expenses</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><WalletIcon size={18} /></div>
+                </div>
+                <div className="stat-value">Rs. {getFinanceSummary().expense.toLocaleString('en-IN')}</div>
+                <div className="stat-change"><span>Software, tools & payouts</span></div>
+              </div>
+              <div className="stat-card highlight-peach" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="stat-header">
+                  <span className="stat-title">Net Profit Margin</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><WalletIcon size={18} /></div>
+                </div>
+                <div className="stat-value">Rs. {getFinanceSummary().net.toLocaleString('en-IN')}</div>
+                <div className="stat-change"><span>After deductions & expenses</span></div>
+              </div>
+              <div className="stat-card highlight-lavender" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="stat-header">
+                  <span className="stat-title">Campaign Invoices</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><BriefcaseIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{brandDeals.length}</div>
+                <div className="stat-change"><span>Brand deals contracts logged</span></div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'CREATOR':
+      case 'ADMIN':
+      default:
+        return (
+          <div className="dashboard-grid">
+            <div className="stat-card-row">
+              <div className="stat-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="stat-header">
+                  <span className="stat-title">Total Revenue</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><WalletIcon size={18} /></div>
+                </div>
+                <div className="stat-value">Rs. {getFinanceSummary().revenue.toLocaleString('en-IN')}</div>
+                <div className="stat-change" style={{ color: 'var(--text-secondary)' }}>
+                  Net: <span style={{ color: 'var(--pink-hot)' }}>Rs. {getFinanceSummary().net.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+              <div className="stat-card highlight-yellow" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <div className="stat-header">
+                  <span className="stat-title">Upcoming Posts</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><VideoIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{contentItems.length}</div>
+                <div className="stat-change"><span>This Week</span></div>
+                <div className="goal-progress-track" style={{ marginTop: '10px', height: '8px' }}>
+                  <div className="goal-progress-bar" style={{ width: `${Math.min(100, (contentItems.filter(c => c.status === 'SCHEDULED' || c.status === 'PUBLISHED').length / Math.max(contentItems.length, 1)) * 100)}%`, backgroundColor: 'var(--pink-hot)' }} />
+                </div>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', marginTop: '6px' }}>{contentItems.filter(c => c.status === 'SCHEDULED').length} Scheduled</div>
+              </div>
+              <div className="stat-card highlight-peach" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('brands')}>
+                <div className="stat-header">
+                  <span className="stat-title">Active Brand Deals</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><BriefcaseIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{brandDeals.filter(d => d.status === 'ACTIVE').length || brandDeals.length}</div>
+                <div className="stat-change"><span>In Progress</span></div>
+                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--pink-hot)', marginTop: '8px' }}>
+                  {brandDeals.filter(d => d.status === 'NEGOTIATING').length} Negotiating
+                </div>
+              </div>
+              <div className="stat-card highlight-lavender" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('goals')}>
+                <div className="stat-header">
+                  <span className="stat-title">Goals Progress</span>
+                  <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><TargetIcon size={18} /></div>
+                </div>
+                <div className="stat-value">{goals.filter(g => g.isAchieved).length}/{goals.length}</div>
+                <div className="stat-change">
+                  <span style={{ color: 'var(--pink-hot)' }}>Up {goals.length}</span> <span style={{ color: 'var(--text-secondary)' }}>active goals</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
+
+  const renderRoleDashboardGrid = (role) => {
+    switch (role) {
+      case 'VIDEO_EDITOR':
+        return (
+          <>
+            <div className="dashboard-center-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <div className="panel-card-header">
+                  <h3 className="panel-card-title"><VideoIcon size={20} /> Video Editing Pipeline</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                  {contentItems.filter(item => item.status === 'EDITING' || item.status === 'RECORDING').length === 0 ? (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600', padding: '20px', textAlign: 'center' }}>
+                      No videos currently pending editing.
+                    </div>
+                  ) : contentItems.filter(item => item.status === 'EDITING' || item.status === 'RECORDING').map(item => (
+                    <div key={item.id} className="content-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', border: '2px solid #111', borderRadius: '6px' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '0.9rem' }}>{item.title}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Type: {item.type}</div>
+                      </div>
+                      <span className="platform-tag youtube" style={{ textTransform: 'uppercase' }}>{item.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {renderNotificationsWidget()}
+            </div>
+            <div className="dashboard-two-col-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('script')}>
+                <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><FileTextIcon size={20} /> Active Scripts</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {scripts.slice(0, 3).map(s => (
+                    <div key={s.id} style={{ borderBottom: '1px solid #eee', paddingBottom: '8px' }}>
+                      <div style={{ fontWeight: '800', fontSize: '0.85rem' }}>{s.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '4px' }}>
+                        {s.content ? s.content.substring(0, 80) + '...' : 'No content outline yet.'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
+                <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><ImageIcon size={20} /> Raw Assets & Uploads</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {assets.slice(0, 4).map(asset => (
+                    <div key={asset.id} style={{ border: '2px solid #111', padding: '8px', borderRadius: '4px', background: 'var(--bg-main)', fontSize: '0.75rem', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {asset.name}
+                    </div>
+                  ))}
+                  {assets.length === 0 && <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', gridColumn: '1/-1' }}>No assets uploaded yet.</div>}
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      case 'SCRIPT_WRITER':
+        return (
+          <>
+            <div className="dashboard-center-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('script')}>
+                <div className="panel-card-header">
+                  <h3 className="panel-card-title"><FileTextIcon size={20} /> Script Drafts</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                  {scripts.length === 0 ? (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600', padding: '20px', textAlign: 'center' }}>
+                      No script files logged.
+                    </div>
+                  ) : scripts.slice(0, 3).map(script => (
+                    <div key={script.id} style={{ border: '2px solid #111', padding: '12px', borderRadius: '6px', backgroundColor: 'white', boxShadow: '2px 2px 0px #111' }}>
+                      <div style={{ fontWeight: '800', fontSize: '0.9rem', marginBottom: '6px' }}>{script.title}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#555' }}>
+                        {script.content ? script.content.substring(0, 120) + '...' : 'Blank script template.'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="panel-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('ai')}>
+                <h3 className="icon-heading" style={{ marginBottom: '8px', fontSize: '1.2rem' }}><BotIcon size={20} /> AI Co-Pilot</h3>
+                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#555555', marginBottom: '16px' }}>
+                  Draft script segments, viral hooks, and brainstorm content angles instantly.
+                </p>
+                <form onSubmit={handleQuickAiSubmit}>
+                  <input 
+                    className="form-input" 
+                    placeholder="Topic / Prompt..." 
+                    value={aiPrompt}
+                    onChange={e => setAiPrompt(e.target.value)}
+                    style={{ marginBottom: '12px' }}
+                  />
+                  <button className="btn-primary" type="submit" style={{ padding: '8px' }}>
+                    Generate Script Idea
+                  </button>
+                </form>
+              </div>
+            </div>
+            <div className="dashboard-two-col-grid">
+              {renderCalendarWidget()}
+              {renderNotificationsWidget()}
+            </div>
+          </>
+        );
+      case 'THUMBNAIL_DESIGNER':
+        return (
+          <>
+            <div className="dashboard-center-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
+                <div className="panel-card-header">
+                  <h3 className="panel-card-title"><ImageIcon size={20} /> Thumbnail Requests Queue</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                  {contentItems.filter(c => c.status === 'THUMBNAIL' || c.status === 'IDEA').length === 0 ? (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600', padding: '20px', textAlign: 'center' }}>
+                      No pending thumbnail requests in the workspace.
+                    </div>
+                  ) : contentItems.filter(c => c.status === 'THUMBNAIL' || c.status === 'IDEA').map(item => (
+                    <div key={item.id} className="content-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '0.85rem' }}>{item.title}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#555' }}>Platform: {item.type}</div>
+                      </div>
+                      <span className="platform-tag instagram" style={{ textTransform: 'uppercase' }}>{item.status}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {renderNotificationsWidget()}
+            </div>
+            <div className="dashboard-two-col-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
+                <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><ImageIcon size={20} /> Brand Assets & Materials</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                  {assets.map(asset => (
+                    <div key={asset.id} style={{ border: '2px solid #111', padding: '10px', borderRadius: '6px', background: 'white', textAlign: 'center', boxShadow: '2px 2px 0px #111' }}>
+                      <ImageIcon size={24} />
+                      <div style={{ fontSize: '0.7rem', fontWeight: '800', marginTop: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{asset.name}</div>
+                    </div>
+                  ))}
+                  {assets.length === 0 && <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', gridColumn: '1/-1' }}>No assets uploaded yet.</div>}
+                </div>
+              </div>
+              {renderCalendarWidget()}
+            </div>
+          </>
+        );
+      case 'MANAGER':
+        return (
+          <>
+            <div className="dashboard-center-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('brands')}>
+                <div className="panel-card-header">
+                  <h3 className="panel-card-title"><BriefcaseIcon size={20} /> Campaign Pipeline</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                  {brandDeals.map(deal => (
+                    <div key={deal.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', border: '2px solid #111', borderRadius: '6px', background: 'white' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '0.85rem' }}>{deal.name || deal.brand?.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#666' }}>Campaign: {deal.campaignName || deal.title}</div>
+                      </div>
+                      <span style={{ fontWeight: '800', fontSize: '0.8rem', color: 'var(--pink-hot)' }}>Rs. {deal.dealValue || deal.budget}</span>
+                    </div>
+                  ))}
+                  {brandDeals.length === 0 && <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center' }}>No campaigns registered.</div>}
+                </div>
+              </div>
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>
+                <h3 className="panel-card-title"><BarChartIcon size={20} /> Performance Chart</h3>
+                <div style={{ display: 'flex', alignItems: 'flex-end', height: '120px', gap: '10px', marginTop: '16px', borderBottom: '2px solid #111' }}>
+                  {analyticsData.growth.slice(-5).map(g => {
+                    const maxV = Math.max(...analyticsData.growth.map(i => i.views || 0), 1);
+                    const h = Math.max(10, Math.round(((g.views || 0) / maxV) * 100));
+                    return (
+                      <div key={g.month} title={`${g.month}: ${g.views} views`} style={{ flex: 1, height: `${h}%`, background: 'var(--yellow)', border: '2px solid #111', borderRadius: '4px 4px 0 0' }} />
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="dashboard-two-col-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <h3 className="panel-card-title"><WalletIcon size={20} /> Financial summary</h3>
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: '600' }}>Revenues Logged:</span>
+                    <span className="amount-positive">Rs. {getFinanceSummary().revenue.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: '600' }}>Expenses Logged:</span>
+                    <span className="amount-negative">Rs. {getFinanceSummary().expense.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '2px solid #111', paddingTop: '8px' }}>
+                    <span style={{ fontWeight: '800' }}>Net Balance:</span>
+                    <span style={{ fontWeight: '800', color: 'var(--pink-hot)' }}>Rs. {getFinanceSummary().net.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+              </div>
+              {renderNotificationsWidget()}
+            </div>
+          </>
+        );
+      case 'FINANCE_MANAGER':
+        return (
+          <>
+            <div className="dashboard-center-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="panel-card-header">
+                  <h3 className="panel-card-title"><WalletIcon size={20} /> Recent Revenues</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                  {revenues.slice(0, 4).map(rev => (
+                    <div key={rev.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', border: '2px solid #111', borderRadius: '6px', background: 'white' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '0.85rem' }}>{rev.source?.replace('_', ' ')}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#666' }}>{rev.description || 'Revenue item'}</div>
+                      </div>
+                      <span className="amount-positive" style={{ fontWeight: '800' }}>+ Rs. {rev.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                  {revenues.length === 0 && <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center' }}>No revenue items logged.</div>}
+                </div>
+              </div>
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <div className="panel-card-header">
+                  <h3 className="panel-card-title"><WalletIcon size={20} /> Recent Expenses</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                  {expenses.slice(0, 4).map(exp => (
+                    <div key={exp.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', border: '2px solid #111', borderRadius: '6px', background: 'white' }}>
+                      <div>
+                        <div style={{ fontWeight: '800', fontSize: '0.85rem' }}>{exp.category?.replace('_', ' ')}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#666' }}>{exp.description || 'Expense item'}</div>
+                      </div>
+                      <span className="amount-negative" style={{ fontWeight: '800' }}>- Rs. {exp.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                  {expenses.length === 0 && <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center' }}>No expense items logged.</div>}
+                </div>
+              </div>
+            </div>
+            <div className="dashboard-two-col-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>
+                <h3 className="panel-card-title"><BarChartIcon size={20} /> Performance Chart</h3>
+                <div style={{ display: 'flex', alignItems: 'flex-end', height: '120px', gap: '10px', marginTop: '16px', borderBottom: '2px solid #111' }}>
+                  {analyticsData.growth.slice(-5).map(g => {
+                    const maxV = Math.max(...analyticsData.growth.map(i => i.views || 0), 1);
+                    const h = Math.max(10, Math.round(((g.views || 0) / maxV) * 100));
+                    return (
+                      <div key={g.month} title={`${g.month}: ${g.views} views`} style={{ flex: 1, height: `${h}%`, background: 'var(--yellow)', border: '2px solid #111', borderRadius: '4px 4px 0 0' }} />
+                    );
+                  })}
+                </div>
+              </div>
+              {renderNotificationsWidget()}
+            </div>
+          </>
+        );
+      case 'CREATOR':
+      case 'ADMIN':
+      default:
+        return (
+          <>
+            <div className="dashboard-center-grid">
+              {renderCalendarWidget()}
+              {renderNotificationsWidget()}
+            </div>
+            <div className="dashboard-bottom-grid">
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
+                <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><VideoIcon size={20} /> Recent Content</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {contentItems.length === 0 ? (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600' }}>No content yet. Add your first item.</div>
+                  ) : contentItems.slice(0, 3).map((item, idx) => {
+                    const colors = ['var(--lavender)', 'var(--yellow)', 'var(--mint)'];
+                    return (
+                      <div key={item.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <div style={{ width: '50px', height: '40px', background: colors[idx % colors.length], border: '2px solid #111111', borderRadius: '4px', flexShrink: 0 }} />
+                          <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: '800' }}>{item.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#555555' }}>{item.type?.replace('_', ' ')} / {item.status}</div>
+                          </div>
+                        </div>
+                        <span style={{ background: 'var(--pink-soft)', border: '1.5px solid #111', padding: '2px 8px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '800' }}>{item.status}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
+                <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><BarChartIcon size={20} /> Revenue Overview</h3>
+                <div style={{ display: 'flex', alignItems: 'flex-end', height: '100px', gap: '12px', paddingBottom: '10px', borderBottom: '2px solid #111111' }}>
+                  {(financeSummary.monthlyData || []).slice(-5).map(month => {
+                    const maxRevenue = Math.max(...(financeSummary.monthlyData || []).map(m => m.revenue || 0), 1);
+                    const height = Math.max(8, Math.round(((month.revenue || 0) / maxRevenue) * 100));
+                    return (
+                      <div key={month.month} title={`${month.month}: Rs. ${(month.revenue || 0).toLocaleString('en-IN')}`} style={{ flex: 1, height: `${height}%`, background: height >= 90 ? 'var(--pink-primary)' : 'var(--pink-soft)', border: '2px solid #111111', borderRadius: '4px 4px 0 0' }} />
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '800', marginTop: '6px' }}>
+                  {(financeSummary.monthlyData || []).slice(-5).map(month => (
+                    <span key={month.month}>{month.month?.split(' ')[0]}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="panel-card highlight-pink" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('ai')}>
+                <h3 className="icon-heading" style={{ marginBottom: '8px', fontSize: '1.2rem' }}><BotIcon size={20} /> AI Co-Pilot</h3>
+                <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#555555', marginBottom: '16px' }}>
+                  Need post ideas, titles, or hooks in seconds?
+                </p>
+                <form onSubmit={handleQuickAiSubmit}>
+                  <input 
+                    className="form-input" 
+                    placeholder="Ask AI Assistant..." 
+                    value={aiPrompt}
+                    onChange={e => setAiPrompt(e.target.value)}
+                    style={{ marginBottom: '12px' }}
+                  />
+                  <button className="btn-primary" type="submit" style={{ padding: '8px' }}>
+                    Generate Outline
+                  </button>
+                </form>
+              </div>
+            </div>
+          </>
+        );
+    }
+  };
+
   return (
     <div className="app-layout">
       {/* Sidebar Section */}
@@ -552,68 +1322,29 @@ export default function Dashboard() {
         </div>
 
         <ul className="sidebar-menu">
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('home')} className={`sidebar-link ${activeTab === 'home' ? 'active' : ''}`}>
-               <BarChartIcon size={18} />
-               <span>Dashboard</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('content')} className={`sidebar-link ${activeTab === 'content' ? 'active' : ''}`}>
-               <CalendarIcon size={18} />
-               <span>Content Calendar</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('ai')} className={`sidebar-link ${activeTab === 'ai' ? 'active' : ''}`}>
-               <BotIcon size={18} />
-               <span>AI Assistant</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('brands')} className={`sidebar-link ${activeTab === 'brands' ? 'active' : ''}`}>
-               <BriefcaseIcon size={18} />
-               <span>Brand Deals</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('finance')} className={`sidebar-link ${activeTab === 'finance' ? 'active' : ''}`}>
-              <WalletIcon size={18} />
-              <span>Revenue & Expenses</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('assets')} className={`sidebar-link ${activeTab === 'assets' ? 'active' : ''}`}>
-               <ImageIcon size={18} />
-               <span>Assets</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('analytics')} className={`sidebar-link ${activeTab === 'analytics' ? 'active' : ''}`}>
-               <BarChartIcon size={18} />
-               <span>Analytics</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('goals')} className={`sidebar-link ${activeTab === 'goals' ? 'active' : ''}`}>
-               <TargetIcon size={18} />
-               <span>Goals</span>
-            </a>
-          </li>
-          <li className="sidebar-item">
-            <a onClick={() => setActiveTab('script')} className={`sidebar-link ${activeTab === 'script' ? 'active' : ''}`}>
-               <FileTextIcon size={18} />
-               <span>Script Workspace</span>
-            </a>
-          </li>
+          {menuItems.filter(item => allowedTabs.includes(item.id)).map(item => (
+            <li key={item.id} className="sidebar-item">
+              <a onClick={() => setActiveTab(item.id)} className={`sidebar-link ${activeTab === item.id ? 'active' : ''}`}>
+                {item.icon}
+                <span>{item.label}</span>
+              </a>
+            </li>
+          ))}
         </ul>
 
-        <div className="sidebar-user" style={{ marginTop: '16px' }}>
-          <div className="user-info">
-            <div className="user-name">{user?.email?.split('@')[0] || 'Arjun'}</div>
-            <div className="user-role">Creator Account</div>
+        <div className="sidebar-user" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: 'auto', padding: '16px 0', borderTop: '2px solid var(--border-color)' }}>
+          {user?.profileImage ? (
+            <img src={user.profileImage} alt={userName} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #111111', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--pink-soft)', border: '2px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
+              {userAvatarLetter}
+            </div>
+          )}
+          <div className="user-info" style={{ flex: 1 }}>
+            <div className="user-name" style={{ fontSize: '0.9rem', fontWeight: '800' }}>{userName}</div>
+            <div className="user-role" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{getRoleLabel(userRole)}</div>
           </div>
-          <button onClick={handleLogout} className="logout-btn" title="Log out">
+          <button onClick={handleLogout} className="logout-btn" title="Log out" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
             <LogOutIcon size={18} />
           </button>
         </div>
@@ -655,10 +1386,14 @@ export default function Dashboard() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--pink-soft)', border: '2px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>A</div>
+              {user?.profileImage ? (
+                <img src={user.profileImage} alt={userName} style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #111111', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--pink-soft)', border: '2px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.2rem' }}>{userAvatarLetter}</div>
+              )}
               <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>Hi, {user?.email?.split('@')[0] || 'Arjun'}!</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Creator</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>Hi, {userName}!</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{getRoleLabel(userRole)}</div>
               </div>
             </div>
           </div>
@@ -673,7 +1408,7 @@ export default function Dashboard() {
 
           {loading && (
             <div className="panel-card" style={{ marginBottom: '20px', fontWeight: '800' }}>
-              Loading live workspace data...
+              Updating workspace datasets...
             </div>
           )}
 
@@ -682,188 +1417,18 @@ export default function Dashboard() {
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <div>
-                  <h1 style={{ fontSize: '2.2rem', marginBottom: '4px' }}>Good morning, {user?.email?.split('@')[0] || 'Arjun'}</h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: '600' }}>Here's what's happening with your creator business today.</p>
+                  <h1 style={{ fontSize: '2.2rem', marginBottom: '4px' }}>Good morning, {userName}</h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', fontWeight: '600' }}>
+                    Logged in as <strong style={{ color: 'var(--pink-hot)' }}>{getRoleLabel(userRole)}</strong>. Here's your workspace overview for today.
+                  </p>
                 </div>
                 <div style={{ background: 'white', border: '2.5px solid #111111', padding: '10px 16px', borderRadius: '8px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '2px 2px 0px #111111' }}>
                    {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                 </div>
               </div>
 
-              {/* Bento Grid Stats */}
-              <div className="dashboard-grid">
-                <div className="stat-card-row">
-                  <div className="stat-card highlight-pink">
-                    <div className="stat-header">
-                      <span className="stat-title">Total Revenue</span>
-                      <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><WalletIcon size={18} /></div>
-                    </div>
-                    <div className="stat-value">Rs. {getFinanceSummary().revenue.toLocaleString('en-IN')}</div>
-                    <div className="stat-change" style={{ color: 'var(--text-secondary)' }}>
-                      Net: <span style={{ color: 'var(--pink-hot)' }}>Rs. {getFinanceSummary().net.toLocaleString('en-IN')}</span>
-                    </div>
-                  </div>
-
-                  <div className="stat-card highlight-yellow">
-                    <div className="stat-header">
-                      <span className="stat-title">Upcoming Posts</span>
-                      <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><VideoIcon size={18} /></div>
-                    </div>
-                    <div className="stat-value">{contentItems.length}</div>
-                    <div className="stat-change"><span>This Week</span></div>
-                    <div className="goal-progress-track" style={{ marginTop: '10px', height: '8px' }}>
-                      <div className="goal-progress-bar" style={{ width: `${Math.min(100, (contentItems.filter(c => c.status === 'SCHEDULED' || c.status === 'PUBLISHED').length / Math.max(contentItems.length, 1)) * 100)}%`, backgroundColor: 'var(--pink-hot)' }} />
-                    </div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '700', marginTop: '6px' }}>{contentItems.filter(c => c.status === 'SCHEDULED').length} Scheduled</div>
-                  </div>
-
-                  <div className="stat-card highlight-peach">
-                    <div className="stat-header">
-                      <span className="stat-title">Active Brand Deals</span>
-                      <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><BriefcaseIcon size={18} /></div>
-                    </div>
-                    <div className="stat-value">{brandDeals.filter(d => d.status === 'ACTIVE').length || brandDeals.length}</div>
-                    <div className="stat-change"><span>In Progress</span></div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: 'var(--pink-hot)', marginTop: '8px' }}>
-                      {brandDeals.filter(d => d.status === 'NEGOTIATING').length} Negotiating
-                    </div>
-                  </div>
-
-                  <div className="stat-card highlight-lavender">
-                    <div className="stat-header">
-                      <span className="stat-title">Goals Progress</span>
-                      <div className="stat-icon-wrapper" style={{ backgroundColor: 'white' }}><TargetIcon size={18} /></div>
-                    </div>
-                    <div className="stat-value">{goals.filter(g => g.isAchieved).length}/{goals.length}</div>
-                    <div className="stat-change">
-                      <span style={{ color: 'var(--pink-hot)' }}>Up {goals.length}</span> <span style={{ color: 'var(--text-secondary)' }}>active goals</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bento Center Block */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px', marginBottom: '24px' }}>
-                {/* Content Calendar Week Strip */}
-                <div className="panel-card">
-                  <div className="panel-card-header" style={{ borderBottom: 'none', marginBottom: '10px' }}>
-                    <h3 className="panel-card-title"> Content Calendar</h3>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn-secondary" style={{ padding: '6px 12px' }}>WEEK</button>
-                      <button className="btn-secondary" style={{ padding: '6px 12px' }}>MONTH</button>
-                      <button className="btn-secondary" style={{ padding: '6px 12px' }}>AGENDA</button>
-                    </div>
-                  </div>
-
-                  <div className="calendar-grid">
-                    {getWeekDays().map((day) => (
-                      <div key={day.toISOString()} className={`calendar-cell ${day.toDateString() === new Date().toDateString() ? 'today' : ''}`}>
-                        <div className="calendar-date-number">
-                          {day.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' })}
-                        </div>
-                        {getContentForDate(day).slice(0, 3).map(item => (
-                          <div key={item.id} className="platform-tag youtube" style={{ fontSize: '0.65rem', padding: '2px' }}>
-                            {item.title}
-                          </div>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                  <button className="btn-secondary" style={{ width: '100%', marginTop: '16px', borderStyle: 'dashed' }} onClick={() => { setModalType('content'); setShowAddModal(true); }}>
-                    + ADD CONTENT
-                  </button>
-                </div>
-
-                {/* Notifications Widget */}
-                <div className="panel-card">
-                  <div className="panel-card-header">
-                    <h3 className="panel-card-title"><BellIcon size={20} /> Notifications</h3>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {notifications.length === 0 ? (
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600' }}>No notifications yet.</div>
-                    ) : notifications.map((n, idx) => {
-                      const bg = ['var(--yellow)', 'var(--mint)', 'var(--pink-soft)', 'var(--lavender)'];
-                      const NotificationIcon = notificationIconMap[n.type] || BellIcon;
-                      return (
-                        <div key={n.id || idx} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                          <div style={{ background: bg[idx % bg.length], border: '2px solid #111111', padding: '6px', borderRadius: '8px', flexShrink: 0, display: 'flex' }}><NotificationIcon size={16} /></div>
-                          <div>
-                            <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>{n.title}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#555555' }}>{n.message}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Bento Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: '24px' }}>
-                {/* Recent Content */}
-                <div className="panel-card">
-                  <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><VideoIcon size={20} /> Recent Content</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {contentItems.length === 0 ? (
-                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600' }}>No content yet. Add your first item.</div>
-                    ) : contentItems.slice(0, 3).map((item, idx) => {
-                      const colors = ['var(--lavender)', 'var(--yellow)', 'var(--mint)'];
-                      return (
-                        <div key={item.id || idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <div style={{ width: '50px', height: '40px', background: colors[idx % colors.length], border: '2px solid #111111', borderRadius: '4px', flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontSize: '0.85rem', fontWeight: '800' }}>{item.title}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#555555' }}>{item.type?.replace('_', ' ')} / {item.status}</div>
-                            </div>
-                          </div>
-                          <span style={{ background: 'var(--pink-soft)', border: '1.5px solid #111', padding: '2px 8px', borderRadius: '20px', fontSize: '0.72rem', fontWeight: '800' }}>{item.status}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Revenue Overview chart block */}
-                <div className="panel-card">
-                  <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><BarChartIcon size={20} /> Revenue Overview</h3>
-                  <div style={{ display: 'flex', alignItems: 'flex-end', height: '100px', gap: '12px', paddingBottom: '10px', borderBottom: '2px solid #111111' }}>
-                    {(financeSummary.monthlyData || []).slice(-5).map(month => {
-                      const maxRevenue = Math.max(...(financeSummary.monthlyData || []).map(m => m.revenue || 0), 1);
-                      const height = Math.max(8, Math.round(((month.revenue || 0) / maxRevenue) * 100));
-                      return (
-                        <div key={month.month} title={`${month.month}: Rs. ${(month.revenue || 0).toLocaleString('en-IN')}`} style={{ flex: 1, height: `${height}%`, background: height >= 90 ? 'var(--pink-primary)' : 'var(--pink-soft)', border: '2px solid #111111', borderRadius: '4px 4px 0 0' }} />
-                      );
-                    })}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: '800', marginTop: '6px' }}>
-                    {(financeSummary.monthlyData || []).slice(-5).map(month => (
-                      <span key={month.month}>{month.month?.split(' ')[0]}</span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* AI Assistant Quick prompt widget */}
-                <div className="panel-card highlight-pink">
-                  <h3 className="icon-heading" style={{ marginBottom: '8px', fontSize: '1.2rem' }}><BotIcon size={20} /> AI Co-Pilot</h3>
-                  <p style={{ fontSize: '0.8rem', fontWeight: '600', color: '#555555', marginBottom: '16px' }}>
-                    Need post ideas, titles, or hooks in seconds?
-                  </p>
-                  <form onSubmit={handleQuickAiSubmit}>
-                    <input 
-                      className="form-input" 
-                      placeholder="Ask AI Assistant..." 
-                      value={aiPrompt}
-                      onChange={e => setAiPrompt(e.target.value)}
-                      style={{ marginBottom: '12px' }}
-                    />
-                    <button className="btn-primary" type="submit" style={{ padding: '8px' }}>
-                      Generate Outline
-                    </button>
-                  </form>
-                </div>
-              </div>
+              {renderRoleStatCards(userRole)}
+              {renderRoleDashboardGrid(userRole)}
             </div>
           )}
 

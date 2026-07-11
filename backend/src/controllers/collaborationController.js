@@ -26,6 +26,11 @@ const deleteNotification = wrap(async (req, res) => {
   res.json({ success: true, message: 'Notification deleted', data: {} });
 });
 
+const clearNotifications = wrap(async (req, res) => {
+  await collab.clearAllNotifications(req.user.id);
+  res.json({ success: true, message: 'All notifications cleared', data: {} });
+});
+
 // ──── TASKS ────
 const getTasks = wrap(async (req, res) => {
   const data = await collab.getTasks(req.user.id, req.query);
@@ -106,7 +111,7 @@ const restoreVersion = wrap(async (req, res) => {
 });
 
 module.exports = {
-  getNotifications, markAsRead, markAllAsRead, deleteNotification,
+  getNotifications, markAsRead, markAllAsRead, deleteNotification, clearNotifications,
   getTasks, createTask, updateTask, deleteTask, addComment,
   getTeams, createTeam, inviteMember, removeMember,
   getScripts, getScript, createScript, updateScript, deleteScript, restoreVersion,

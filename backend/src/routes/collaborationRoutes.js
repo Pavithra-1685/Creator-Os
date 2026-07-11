@@ -8,6 +8,7 @@ router.use(authenticate);
 router.get('/notifications', c.getNotifications);
 router.patch('/notifications/read-all', c.markAllAsRead);
 router.patch('/notifications/:id/read', c.markAsRead);
+router.delete('/notifications/clear-all', c.clearNotifications);
 router.delete('/notifications/:id', c.deleteNotification);
 
 // Tasks

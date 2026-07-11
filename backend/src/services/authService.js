@@ -130,6 +130,15 @@ const updateProfile = async (userId, data) => {
     data: {
       name: data.name ?? user.name,
       profileImage: data.profileImage ?? user.profileImage,
+      role: data.role ?? user.role,
+      bio: data.bio ?? user.bio,
+      niche: data.niche ?? user.niche,
+      youtubeChannel: data.youtubeChannel ?? user.youtubeChannel,
+      instagramHandle: data.instagramHandle ?? user.instagramHandle,
+      tiktokHandle: data.tiktokHandle ?? user.tiktokHandle,
+      twitterHandle: data.twitterHandle ?? user.twitterHandle,
+      linkedinProfile: data.linkedinProfile ?? user.linkedinProfile,
+      timezone: data.timezone ?? user.timezone,
     },
   });
   return updated;

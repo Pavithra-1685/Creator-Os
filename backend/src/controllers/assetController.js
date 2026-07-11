@@ -22,9 +22,10 @@ const getAsset = wrap(async (req, res) => {
 const uploadAsset = wrap(async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: 'No file provided', data: {} });
 
-  // Upload to Cloudinary
-  let url = req.file.path;
+  let url = null;
   let publicId = null;
+
+  // Try Cloudinary first
   try {
     const uploaded = await cloudinary.uploadBuffer(req.file.buffer, {
       folder: `creatoros/${req.user.id}`,
@@ -33,7 +34,19 @@ const uploadAsset = wrap(async (req, res) => {
     url = uploaded.secure_url;
     publicId = uploaded.public_id;
   } catch (e) {
-    // If Cloudinary not configured, store locally
+    // Cloudinary not configured or failed — save locally
+  }
+
+  // Fallback: save to local uploads directory
+  if (!url) {
+    const fs = require('fs');
+    const path = require('path');
+    const uploadsDir = path.join(__dirname, '..', '..', 'uploads', req.user.id);
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    const safeName = `${Date.now()}-${req.file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const filePath = path.join(uploadsDir, safeName);
+    fs.writeFileSync(filePath, req.file.buffer);
+    url = `/uploads/${req.user.id}/${safeName}`;
   }
 
   const asset = await assetService.createAsset(req.user.id, {
