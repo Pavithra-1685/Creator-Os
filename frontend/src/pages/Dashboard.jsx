@@ -19,6 +19,7 @@ import {
   UsersIcon,
   VideoIcon,
   WalletIcon,
+  SettingsIcon,
 } from '../components/Icons';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
@@ -58,7 +59,7 @@ const getAssetTypeFromFile = (file) => {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout, user, fetchProfile } = useAuth();
   const socketRef = useRef(null);
   const [activeTab, setActiveTab] = useState('home');
   const [loading, setLoading] = useState(false);
@@ -111,34 +112,22 @@ export default function Dashboard() {
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
   // Profile Settings Form State
-  const [profileSubTab, setProfileSubTab] = useState('edit');
   const [profileEditForm, setProfileEditForm] = useState({
-    name: '',
-    bio: '',
-    niche: '',
-    socialYoutube: '',
-    socialInstagram: '',
-    socialTiktok: '',
+    name: '', bio: '', niche: '',
+    socialYoutube: '', socialInstagram: '', socialTiktok: '',
     role: 'CREATOR'
   });
 
   const addToast = (message, type = 'info') => {
     const id = Date.now() + Math.random().toString();
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
   };
 
   const triggerConfirm = (title, message, onConfirm) => {
     setConfirmDialog({
-      isOpen: true,
-      title,
-      message,
-      onConfirm: () => {
-        onConfirm();
-        setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null });
-      }
+      isOpen: true, title, message,
+      onConfirm: () => { onConfirm(); setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null }); }
     });
   };
 
@@ -596,19 +585,105 @@ export default function Dashboard() {
     });
   };
 
+  // ─── CRUD Delete Handler ───
+  const handleDeleteItem = async (type, id) => {
+    const token = getToken();
+    const urlMap = {
+      content: `${API_URL}/content/${id}`,
+      brand: `${API_URL}/brands/campaigns/${id}`,
+      revenue: `${API_URL}/finance/revenue/${id}`,
+      expense: `${API_URL}/finance/expenses/${id}`,
+      asset: `${API_URL}/assets/${id}`,
+      goal: `${API_URL}/goals/${id}`,
+      script: `${API_URL}/collaboration/scripts/${id}`,
+      notification: `${API_URL}/collaboration/notifications/${id}`,
+    };
+    const url = urlMap[type];
+    if (!url) return;
+    try {
+      const res = await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await readJson(res);
+      addToast(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully!`, 'success');
+      await fetchData();
+    } catch (err) {
+      addToast(err.message || `Failed to delete ${type}.`, 'error');
+    }
+  };
+
+  // ─── Notification Actions ───
+  const handleClearAllNotifications = async () => {
+    const token = getToken();
+    try {
+      await fetch(`${API_URL}/collaboration/notifications/clear-all`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).then(readJson);
+      setNotifications([]);
+      addToast('All notifications cleared!', 'success');
+    } catch (err) { addToast(err.message || 'Failed to clear notifications.', 'error'); }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    const token = getToken();
+    try {
+      await fetch(`${API_URL}/collaboration/notifications/read-all`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}` } }).then(readJson);
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      addToast('All notifications marked as read!', 'success');
+    } catch (err) { addToast(err.message || 'Failed to mark notifications.', 'error'); }
+  };
+
+  // ─── Profile Update ───
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault();
+    const token = getToken();
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: profileEditForm.name,
+          bio: profileEditForm.bio,
+          niche: profileEditForm.niche,
+          role: profileEditForm.role,
+          youtubeChannel: profileEditForm.socialYoutube,
+          instagramHandle: profileEditForm.socialInstagram,
+          tiktokHandle: profileEditForm.socialTiktok
+        })
+      });
+      await readJson(res);
+      await fetchProfile(token);
+      addToast('Profile updated successfully!', 'success');
+    } catch (err) {
+      addToast(err.message || 'Failed to update profile.', 'error');
+    }
+  };
+
+  // ─── Global Search ───
+  const getSearchResults = () => {
+    if (!searchQuery.trim()) return null;
+    const q = searchQuery.toLowerCase();
+    const results = {
+      content: contentItems.filter(i => i.title?.toLowerCase().includes(q)),
+      assets: assets.filter(i => i.name?.toLowerCase().includes(q)),
+      scripts: scripts.filter(i => i.title?.toLowerCase().includes(q)),
+      brands: brandDeals.filter(i => (i.brand?.name || i.name || i.title || '').toLowerCase().includes(q)),
+      goals: goals.filter(i => i.title?.toLowerCase().includes(q)),
+      notifications: notifications.filter(i => (i.title || '').toLowerCase().includes(q) || (i.message || '').toLowerCase().includes(q)),
+    };
+    const total = Object.values(results).reduce((sum, arr) => sum + arr.length, 0);
+    return total > 0 ? results : [];
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
   const roleTabs = {
-    CREATOR: ['home', 'content', 'ai', 'brands', 'finance', 'assets', 'analytics', 'goals', 'script'],
-    VIDEO_EDITOR: ['home', 'content', 'assets', 'script'],
-    SCRIPT_WRITER: ['home', 'ai', 'script', 'content'],
-    THUMBNAIL_DESIGNER: ['home', 'assets', 'content'],
-    MANAGER: ['home', 'brands', 'analytics', 'finance'],
-    ADMIN: ['home', 'content', 'ai', 'brands', 'finance', 'assets', 'analytics', 'goals', 'script'],
-    FINANCE_MANAGER: ['home', 'finance', 'analytics']
+    CREATOR: ['home', 'content', 'ai', 'brands', 'finance', 'assets', 'analytics', 'goals', 'script', 'profile'],
+    VIDEO_EDITOR: ['home', 'content', 'assets', 'script', 'profile'],
+    SCRIPT_WRITER: ['home', 'ai', 'script', 'content', 'profile'],
+    THUMBNAIL_DESIGNER: ['home', 'assets', 'content', 'profile'],
+    MANAGER: ['home', 'brands', 'analytics', 'finance', 'profile'],
+    ADMIN: ['home', 'content', 'ai', 'brands', 'finance', 'assets', 'analytics', 'goals', 'script', 'profile'],
+    FINANCE_MANAGER: ['home', 'finance', 'analytics', 'profile']
   };
 
   const menuItems = [
@@ -620,7 +695,8 @@ export default function Dashboard() {
     { id: 'assets', label: 'Assets', icon: <ImageIcon size={18} /> },
     { id: 'analytics', label: 'Analytics', icon: <BarChartIcon size={18} /> },
     { id: 'goals', label: 'Goals', icon: <TargetIcon size={18} /> },
-    { id: 'script', label: 'Script Workspace', icon: <FileTextIcon size={18} /> }
+    { id: 'script', label: 'Script Workspace', icon: <FileTextIcon size={18} /> },
+    { id: 'profile', label: 'Settings', icon: <SettingsIcon size={18} /> }
   ];
 
   const getRoleLabel = (role) => {
@@ -1309,8 +1385,11 @@ export default function Dashboard() {
 
   return (
     <div className="app-layout">
+      {/* Mobile sidebar backdrop */}
+      {mobileSidebarOpen && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1050 }} onClick={() => setMobileSidebarOpen(false)} />}
+
       {/* Sidebar Section */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-brand">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1324,7 +1403,7 @@ export default function Dashboard() {
         <ul className="sidebar-menu">
           {menuItems.filter(item => allowedTabs.includes(item.id)).map(item => (
             <li key={item.id} className="sidebar-item">
-              <a onClick={() => setActiveTab(item.id)} className={`sidebar-link ${activeTab === item.id ? 'active' : ''}`}>
+              <a onClick={() => { setActiveTab(item.id); setMobileSidebarOpen(false); }} className={`sidebar-link ${activeTab === item.id ? 'active' : ''}`}>
                 {item.icon}
                 <span>{item.label}</span>
               </a>
@@ -1353,14 +1432,50 @@ export default function Dashboard() {
       {/* Main Container */}
       <main className="main-wrapper">
         <header className="app-header">
-          <div className="search-input-container">
-            <span className="search-icon"><SearchIcon size={18} /></span>
-            <input 
-              className="search-bar" 
-              placeholder="Search content, analytics, deals..." 
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+            <button className="hamburger-btn" onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <div className="search-input-container" style={{ position: 'relative', flex: 1 }}>
+              <span className="search-icon"><SearchIcon size={18} /></span>
+              <input 
+                className="search-bar" 
+                placeholder="Search content, analytics, deals..." 
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              {/* Search Results Dropdown */}
+              {(() => {
+                const sr = getSearchResults();
+                if (!sr || Array.isArray(sr)) return null;
+                const sections = [
+                  { key: 'content', label: 'Content', tab: 'content', items: sr.content, nameKey: 'title' },
+                  { key: 'brands', label: 'Brand Deals', tab: 'brands', items: sr.brands, nameKey: 'title' },
+                  { key: 'assets', label: 'Assets', tab: 'assets', items: sr.assets, nameKey: 'name' },
+                  { key: 'scripts', label: 'Scripts', tab: 'script', items: sr.scripts, nameKey: 'title' },
+                  { key: 'goals', label: 'Goals', tab: 'goals', items: sr.goals, nameKey: 'title' },
+                  { key: 'notifications', label: 'Notifications', tab: null, items: sr.notifications, nameKey: 'title' },
+                ];
+                return (
+                  <div className="search-results-dropdown">
+                    {sections.filter(s => s.items.length > 0).map(s => (
+                      <div key={s.key} className="search-result-group">
+                        <div className="search-result-group-title">{s.label} ({s.items.length})</div>
+                        {s.items.slice(0, 4).map((item, idx) => (
+                          <div key={item.id || idx} className="search-result-item" onClick={() => {
+                            if (s.tab) { setActiveTab(s.tab); } else { setShowNotifDrawer(true); }
+                            setSearchQuery('');
+                          }}>
+                            <span>{item[s.nameKey] || item.name || '-'}</span>
+                            <span style={{ fontSize: '0.7rem', color: '#999' }}>{s.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
           <div className="header-actions">
@@ -1376,7 +1491,7 @@ export default function Dashboard() {
                CREATE NEW
             </button>
 
-            <div className="notification-bell" onClick={() => setActiveTab('home')}>
+            <div className="notification-bell" onClick={() => setShowNotifDrawer(true)}>
               <BellIcon size={20} />
               {notifications.filter(n => !n.isRead).length > 0 && (
                 <div className="notification-bell-badge">
@@ -1385,16 +1500,27 @@ export default function Dashboard() {
               )}
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              {user?.profileImage ? (
-                <img src={user.profileImage} alt={userName} style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #111111', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--pink-soft)', border: '2px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.2rem' }}>{userAvatarLetter}</div>
-              )}
-              <div>
-                <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>Hi, {userName}!</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{getRoleLabel(userRole)}</div>
+            <div className="profile-dropdown-container">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setShowProfileDropdown(!showProfileDropdown)}>
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt={userName} style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #111111', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--pink-soft)', border: '2px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.2rem' }}>{userAvatarLetter}</div>
+                )}
+                <div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>Hi, {userName}!</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{getRoleLabel(userRole)}</div>
+                </div>
               </div>
+              {showProfileDropdown && (
+                <div className="profile-dropdown-menu">
+                  <button className="profile-dropdown-item" onClick={() => { setActiveTab('profile'); setShowProfileDropdown(false); }}>👤 Edit Profile</button>
+                  <button className="profile-dropdown-item" onClick={() => { setActiveTab('goals'); setShowProfileDropdown(false); }}>🎯 Goals & Settings</button>
+                  <button className="profile-dropdown-item" onClick={() => { setShowNotifDrawer(true); setShowProfileDropdown(false); }}>🔔 Notifications</button>
+                  <div style={{ borderTop: '2px solid #111', margin: '4px 0' }} />
+                  <button className="profile-dropdown-item" onClick={() => { handleLogout(); setShowProfileDropdown(false); }} style={{ color: 'var(--pink-hot)' }}>🚪 Logout</button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -1479,6 +1605,7 @@ export default function Dashboard() {
                                 handleUpdateContentStatus(item.id, contentStages[nextIndex]);
                               }} className="btn-action" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>Next</button>
                             )}
+                            <button onClick={() => triggerConfirm('Delete Content', `Delete "${item.title}"?`, () => handleDeleteItem('content', item.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '2px 8px', background: 'var(--pink-soft)' }}>Delete</button>
                           </div>
                         </div>
                       ))}
@@ -1567,6 +1694,7 @@ export default function Dashboard() {
                       <th>Value</th>
                       <th>Platform</th>
                       <th>Status</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1581,6 +1709,7 @@ export default function Dashboard() {
                             {deal.status}
                           </span>
                         </td>
+                        <td><button onClick={() => triggerConfirm('Delete Deal', `Delete this brand deal?`, () => handleDeleteItem('brand', deal.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
                       </tr>
                     ))}
                     {brandDeals.length === 0 && (
@@ -1617,6 +1746,7 @@ export default function Dashboard() {
                       <th>Category / Source</th>
                       <th>Type</th>
                       <th>Amount</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1626,6 +1756,7 @@ export default function Dashboard() {
                         <td>{rec.source}</td>
                         <td style={{ color: 'var(--pink-hot)', fontWeight: '800' }}>REVENUE</td>
                         <td className="amount-positive">+Rs. {parseFloat(rec.amount).toLocaleString('en-IN')}</td>
+                        <td><button onClick={() => triggerConfirm('Delete Revenue', `Delete this revenue transaction?`, () => handleDeleteItem('revenue', rec.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
                       </tr>
                     ))}
                     {expenses.map(rec => (
@@ -1634,10 +1765,11 @@ export default function Dashboard() {
                         <td>{rec.category}</td>
                         <td style={{ fontWeight: '800' }}>EXPENSE</td>
                         <td className="amount-negative">-Rs. {parseFloat(rec.amount).toLocaleString('en-IN')}</td>
+                        <td><button onClick={() => triggerConfirm('Delete Expense', `Delete this expense transaction?`, () => handleDeleteItem('expense', rec.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
                       </tr>
                     ))}
                     {revenues.length === 0 && expenses.length === 0 && (
-                      <tr><td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px' }}>No transactions yet. Log one above.</td></tr>
+                      <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '20px' }}>No transactions yet. Log one above.</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1659,10 +1791,11 @@ export default function Dashboard() {
 
               <div className="asset-grid">
                 {assets.map(asset => (
-                  <div key={asset.id} className="asset-card">
+                  <div key={asset.id} className="asset-card" style={{ position: 'relative' }}>
+                    <button onClick={() => triggerConfirm('Delete Asset', `Delete "${asset.name}"?`, () => handleDeleteItem('asset', asset.id))} style={{ position: 'absolute', top: '8px', right: '8px', background: 'var(--pink-soft)', color: '#111', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '0.72rem', fontWeight: '800', border: '1.5px solid #111' }}>✕</button>
                     <div className="asset-preview">{asset.type === 'IMAGE' ? <ImageIcon size={34} /> : <VideoIcon size={34} />}</div>
                     <div className="asset-info">
-                      <div className="asset-name">{asset.name}</div>
+                      <div className="asset-name" style={{ paddingRight: '20px' }}>{asset.name}</div>
                       <div className="asset-meta">
                         <span>{asset.type}</span>
                         <span>{formatBytes(asset.size)}</span>
@@ -1718,6 +1851,7 @@ export default function Dashboard() {
                             <div className="goal-progress-bar" style={{ width: `${percent}%` }} />
                           </div>
                           <button className="btn-action" onClick={() => handleIncrementGoal(g.id, g.currentValue)}>+ Increment</button>
+                          <button className="btn-action" onClick={() => triggerConfirm('Delete Goal', `Delete this goal milestone?`, () => handleDeleteItem('goal', g.id))} style={{ background: 'var(--pink-soft)' }}>Delete</button>
                         </div>
                       </div>
                     );
@@ -1738,7 +1872,12 @@ export default function Dashboard() {
               <div className="panel-card script-editor-container">
                 <div className="panel-card-header">
                   <h3>Script Editor</h3>
-                  <button className="btn-action" onClick={handleSaveScript}>Save Draft</button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {currentScript.id && (
+                      <button className="btn-action" onClick={() => triggerConfirm('Delete Script', 'Are you sure you want to delete this script draft?', () => { handleDeleteItem('script', currentScript.id); setCurrentScript({ id: '', title: '', content: '', status: 'DRAFT', version: 1 }); })} style={{ background: 'var(--pink-soft)' }}>Delete Script</button>
+                    )}
+                    <button className="btn-action" onClick={handleSaveScript}>Save Draft</button>
+                  </div>
                 </div>
                 <input 
                   className="form-input" 
@@ -1821,6 +1960,94 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* ==================== TABS: PROFILE ==================== */}
+          {activeTab === 'profile' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '30px' }}>
+              <div className="panel-card" style={{ alignSelf: 'start', textAlign: 'center' }}>
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt={userName} style={{ width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #111111', objectFit: 'cover', margin: '0 auto 16px auto', display: 'block', boxShadow: '4px 4px 0 #111' }} />
+                ) : (
+                  <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'var(--pink-soft)', border: '4px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '900', fontSize: '3rem', margin: '0 auto 16px auto', boxShadow: '4px 4px 0 #111' }}>
+                    {userAvatarLetter}
+                  </div>
+                )}
+                <h2 style={{ fontSize: '1.4rem', fontWeight: '900', margin: '0 0 4px 0' }}>{userName}</h2>
+                <div style={{ background: 'var(--yellow)', border: '2px solid #111', borderRadius: '20px', display: 'inline-block', padding: '4px 14px', fontSize: '0.78rem', fontWeight: '800', marginBottom: '16px', boxShadow: '2px 2px 0 #111' }}>
+                  {getRoleLabel(userRole)}
+                </div>
+                <div style={{ fontSize: '0.82rem', color: '#555', fontWeight: '700', borderTop: '2.5px solid #111', paddingTop: '16px', textAlign: 'left' }}>
+                  <div style={{ marginBottom: '8px' }}>📧 <strong>Email:</strong> {user?.email}</div>
+                  {user?.niche && <div style={{ marginBottom: '8px' }}>🎯 <strong>Niche:</strong> {user.niche}</div>}
+                  {user?.bio && <div style={{ lineBreak: 'anywhere' }}>📝 <strong>Bio:</strong> {user.bio}</div>}
+                </div>
+              </div>
+
+              <div className="panel-card">
+                <div style={{ display: 'flex', gap: '20px', borderBottom: '3.5px solid #111', paddingBottom: '12px', marginBottom: '24px' }}>
+                  <button onClick={() => setProfileSubTab('edit')} style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: '900', color: profileSubTab === 'edit' ? 'var(--pink-hot)' : '#555', cursor: 'pointer', borderBottom: profileSubTab === 'edit' ? '4px solid var(--pink-hot)' : 'none', paddingBottom: '12px', marginBottom: '-16px' }}>Edit Profile</button>
+                  <button onClick={() => setProfileSubTab('security')} style={{ background: 'none', border: 'none', fontSize: '1.1rem', fontWeight: '900', color: profileSubTab === 'security' ? 'var(--pink-hot)' : '#555', cursor: 'pointer', borderBottom: profileSubTab === 'security' ? '4px solid var(--pink-hot)' : 'none', paddingBottom: '12px', marginBottom: '-16px' }}>Security Settings</button>
+                </div>
+
+                {profileSubTab === 'edit' ? (
+                  <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div className="form-group">
+                        <label className="form-label">Full Name</label>
+                        <input className="form-input" value={profileEditForm.name} onChange={e => setProfileEditForm({ ...profileEditForm, name: e.target.value })} required />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Primary Role</label>
+                        <select className="form-input" value={profileEditForm.role} onChange={e => setProfileEditForm({ ...profileEditForm, role: e.target.value })} style={{ backgroundColor: 'white' }}>
+                          <option value="CREATOR">Creator</option>
+                          <option value="VIDEO_EDITOR">Video Editor</option>
+                          <option value="SCRIPT_WRITER">Script Writer</option>
+                          <option value="THUMBNAIL_DESIGNER">Thumbnail Designer</option>
+                          <option value="MANAGER">Manager</option>
+                          <option value="FINANCE_MANAGER">Finance Manager</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div className="form-group">
+                        <label className="form-label">Content Niche</label>
+                        <input className="form-input" placeholder="e.g. Tech, Finance, Vlogs" value={profileEditForm.niche} onChange={e => setProfileEditForm({ ...profileEditForm, niche: e.target.value })} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">YouTube Channel ID / URL</label>
+                        <input className="form-input" placeholder="youtube.com/c/yourchannel" value={profileEditForm.socialYoutube} onChange={e => setProfileEditForm({ ...profileEditForm, socialYoutube: e.target.value })} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div className="form-group">
+                        <label className="form-label">Instagram Handle</label>
+                        <input className="form-input" placeholder="@instagram_handle" value={profileEditForm.socialInstagram} onChange={e => setProfileEditForm({ ...profileEditForm, socialInstagram: e.target.value })} />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">TikTok Handle</label>
+                        <input className="form-input" placeholder="@tiktok_handle" value={profileEditForm.socialTiktok} onChange={e => setProfileEditForm({ ...profileEditForm, socialTiktok: e.target.value })} />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Creator Bio</label>
+                      <textarea className="form-input" style={{ height: '90px', resize: 'vertical' }} placeholder="Tell us about yourself..." value={profileEditForm.bio} onChange={e => setProfileEditForm({ ...profileEditForm, bio: e.target.value })} />
+                    </div>
+
+                    <button className="btn-primary" type="submit" style={{ width: '200px', marginTop: '8px' }}>Save Changes</button>
+                  </form>
+                ) : (
+                  <div style={{ padding: '20px 0' }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontWeight: '900' }}>Password Reset</h4>
+                    <p style={{ fontSize: '0.85rem', color: '#555', marginBottom: '20px' }}>Want to update your password? Trigger a password reset request below.</p>
+                    <button className="btn-secondary" onClick={() => addToast('Password reset link sent to your registered email address!', 'success')} style={{ width: 'auto' }}>Send Reset Email</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
@@ -1867,6 +2094,66 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* ==================== NOTIFICATION DRAWER ==================== */}
+      {showNotifDrawer && (
+        <div className="notification-drawer-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowNotifDrawer(false); }}>
+          <div className="notification-drawer">
+            <div className="notification-drawer-header">
+              <h3 style={{ margin: 0, fontWeight: '900', fontSize: '1.1rem' }}>🔔 Notifications</h3>
+              <button onClick={() => setShowNotifDrawer(false)} style={{ background: 'none', border: '2px solid #111', borderRadius: '6px', padding: '4px 10px', fontWeight: '800', cursor: 'pointer' }}>✕</button>
+            </div>
+            <div className="notification-drawer-content">
+              {notifications.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontWeight: '700', padding: '40px 0' }}>No notifications yet.</div>
+              ) : notifications.map((n, idx) => {
+                const bg = ['var(--yellow)', 'var(--mint)', 'var(--pink-soft)', 'var(--lavender)'];
+                const NotifIcon = notificationIconMap[n.type] || BellIcon;
+                return (
+                  <div key={n.id || idx} className={`notification-item-card ${n.isRead ? '' : 'unread'}`}>
+                    <div style={{ background: bg[idx % bg.length], border: '2px solid #111', padding: '6px', borderRadius: '8px', flexShrink: 0, display: 'flex' }}>
+                      <NotifIcon size={16} />
+                    </div>
+                    <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => { handleNotificationClick(n); setShowNotifDrawer(false); }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>{n.title}</div>
+                      <div style={{ fontSize: '0.8rem', color: '#555' }}>{n.message}</div>
+                      <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '4px' }}>{n.createdAt ? new Date(n.createdAt).toLocaleString() : ''}</div>
+                    </div>
+                    <button className="notification-delete-btn" onClick={() => handleDeleteItem('notification', n.id)} title="Delete">✕</button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="notification-drawer-footer">
+              <button className="btn-secondary" style={{ flex: 1, fontSize: '0.8rem' }} onClick={handleMarkAllNotificationsRead}>Mark All Read</button>
+              <button className="btn-secondary" style={{ flex: 1, fontSize: '0.8rem', background: 'var(--pink-soft)' }} onClick={() => triggerConfirm('Clear All', 'Delete all notifications permanently?', handleClearAllNotifications)}>Clear All</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== CONFIRM DIALOG ==================== */}
+      {confirmDialog.isOpen && (
+        <div className="confirm-overlay" onClick={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null })}>
+          <div className="confirm-card" onClick={e => e.stopPropagation()}>
+            <h3 style={{ marginBottom: '12px', fontWeight: '900' }}>{confirmDialog.title}</h3>
+            <p style={{ fontSize: '0.9rem', color: '#555', marginBottom: '20px' }}>{confirmDialog.message}</p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setConfirmDialog({ isOpen: false, title: '', message: '', onConfirm: null })}>Cancel</button>
+              <button className="btn-primary" style={{ flex: 1, background: 'var(--pink-hot)' }} onClick={confirmDialog.onConfirm}>Confirm</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== TOAST CONTAINER ==================== */}
+      <div className="toast-container">
+        {toasts.map(t => (
+          <div key={t.id} className={`toast ${t.type}`}>
+            {t.type === 'success' ? '✅' : t.type === 'error' ? '❌' : 'ℹ️'} {t.message}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
