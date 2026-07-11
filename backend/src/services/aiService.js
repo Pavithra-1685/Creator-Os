@@ -51,6 +51,8 @@ const callOpenAI = async (prompt, systemPrompt) => {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('No AI API key configured. Set GROQ_API_KEY or OPENAI_API_KEY.');
 
+  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -58,18 +60,25 @@ const callOpenAI = async (prompt, systemPrompt) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt },
       ],
-      max_tokens: 1024,
+      max_tokens: 1500,
+      temperature: 0.75,
     }),
   });
+
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error(`OpenAI API error: ${err.error?.message || 'Unknown error'}`);
+  }
+
   const data = await response.json();
   return {
     result: data.choices?.[0]?.message?.content || '',
-    model: 'gpt-3.5-turbo',
+    model,
     tokens: data.usage?.total_tokens,
   };
 };

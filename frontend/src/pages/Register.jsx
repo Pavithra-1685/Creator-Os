@@ -93,7 +93,7 @@ export default function Register() {
               className="form-input"
               value={role} 
               onChange={(e) => setRole(e.target.value)}
-              style={{ backgroundColor: '#0f1626' }}
+              style={{ backgroundColor: 'white' }}
             >
               <option value="CREATOR">Content Creator / Brand Owner</option>
               <option value="MANAGER">Manager / Representative</option>

@@ -18,6 +18,7 @@ const register = async ({ email, password, name, role }) => {
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
   const isEmailVerified = process.env.NODE_ENV !== 'production';
   const user = await userRepo.createUser({ email, password: hashed, name, role, isEmailVerified });
+  await seedUserData(user.id);
   const tokens = await jwt.generateAuthTokens({ userId: user.id });
   await userRepo.saveRefreshToken({ token: tokens.refreshToken, userId: user.id, expiresAt: tokens.refreshExpiresAt });
   if (!isEmailVerified) {
@@ -108,6 +109,7 @@ const googleOAuth = async ({ idToken }) => {
   let user = await userRepo.findUserByEmail(email);
   if (!user) {
     user = await userRepo.createUser({ email, name: payload.name || '', password: uuidv4(), isEmailVerified: true });
+    await seedUserData(user.id);
   }
   const tokens = await jwt.generateAuthTokens({ userId: user.id });
   await userRepo.saveRefreshToken({ token: tokens.refreshToken, userId: user.id, expiresAt: tokens.refreshExpiresAt });
@@ -131,6 +133,135 @@ const updateProfile = async (userId, data) => {
     },
   });
   return updated;
+};
+
+const seedUserData = async (userId) => {
+  try {
+    // 1. Create content items
+    await prisma.contentItem.createMany({
+      data: [
+        {
+          title: "10 Productivity Tips for Creators",
+          type: "YOUTUBE_VIDEO",
+          platform: "YOUTUBE",
+          status: "IDEA",
+          scheduledFor: new Date("2026-05-20T10:00:00Z"),
+          userId,
+        },
+        {
+          title: "Manali Travel Vlog",
+          type: "INSTAGRAM_REEL",
+          platform: "INSTAGRAM",
+          status: "RESEARCH",
+          scheduledFor: new Date("2026-05-21T12:30:00Z"),
+          userId,
+        },
+        {
+          title: "Vlog Editing Setup Tour",
+          type: "YOUTUBE_SHORT",
+          platform: "YOUTUBE",
+          status: "SCRIPT",
+          scheduledFor: new Date("2026-05-23T15:00:00Z"),
+          userId,
+        }
+      ]
+    });
+
+    // 2. Create goals
+    await prisma.goal.createMany({
+      data: [
+        {
+          title: "Weekly Upload Goal",
+          type: "UPLOADS",
+          targetValue: 5,
+          currentValue: 3,
+          unit: "Videos",
+          userId,
+        },
+        {
+          title: "Sponsor Revenues Goal",
+          type: "REVENUE",
+          targetValue: 200000,
+          currentValue: 75000,
+          unit: "Rupees",
+          userId,
+        }
+      ]
+    });
+
+    // 3. Create Brand and Campaign (Deal)
+    const brand = await prisma.brand.create({
+      data: {
+        name: "Nike India",
+        userId,
+      }
+    });
+
+    const campaign = await prisma.campaign.create({
+      data: {
+        title: "Summer Campaign 2026",
+        brandId: brand.id,
+        userId,
+        status: "ACTIVE",
+        budget: 75000,
+      }
+    });
+
+    await prisma.payment.create({
+      data: {
+        amount: 75000,
+        status: "PAID",
+        campaignId: campaign.id,
+      }
+    });
+
+    // 4. Create Revenues and Expenses
+    await prisma.revenue.create({
+      data: {
+        amount: 75000,
+        source: "SPONSORSHIP",
+        description: "Nike India Campaign Payment",
+        date: new Date(),
+        userId,
+      }
+    });
+
+    await prisma.expense.create({
+      data: {
+        amount: 2500,
+        category: "SOFTWARE",
+        description: "Editing Software Subscription",
+        date: new Date(),
+        userId,
+      }
+    });
+
+    // 5. Create notifications
+    await prisma.notification.createMany({
+      data: [
+        {
+          title: "YouTube video scheduled",
+          message: '"5 Productivity Tips" is scheduled for tomorrow at 10:00 AM',
+          type: "PUBLISH_REMINDER",
+          userId,
+        },
+        {
+          title: "Payment received",
+          message: "Nike India paid ₹75,000",
+          type: "PAYMENT_REMINDER",
+          userId,
+        },
+        {
+          title: "Brand deal update",
+          message: "IKEA campaign moved to In Progress",
+          type: "BRAND_DEAL_DEADLINE",
+          userId,
+        }
+      ]
+    });
+  } catch (err) {
+    console.error("User seed failed:", err);
+  }
 };
 
 module.exports = {

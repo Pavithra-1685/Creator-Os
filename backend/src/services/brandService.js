@@ -62,10 +62,20 @@ const getCampaignById = async (id, userId) => {
 };
 
 const createCampaign = async (userId, data) => {
-  return prisma.campaign.create({
+  const camp = await prisma.campaign.create({
     data: { ...data, userId },
     include: { brand: true },
   });
+
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  await triggerRealtimeNotification(
+    userId,
+    'Campaign Registered',
+    `Registered brand deal "${camp.title}" with ${camp.brand.name} (Budget: Rs. ${(camp.budget || 0).toLocaleString('en-IN')})`,
+    'BRAND_DEAL_DEADLINE'
+  );
+
+  return camp;
 };
 
 const updateCampaign = async (id, userId, data) => {

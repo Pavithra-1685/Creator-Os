@@ -28,7 +28,15 @@ const getScriptById = async (id, userId) => {
 };
 
 const createScript = async (userId, data) => {
-  return prisma.script.create({ data: { ...data, authorId: userId } });
+  const script = await prisma.script.create({ data: { ...data, authorId: userId } });
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  await triggerRealtimeNotification(
+    userId,
+    'Script Draft Created',
+    `Created draft script: "${script.title}"`,
+    'EDITING_DEADLINE'
+  );
+  return script;
 };
 
 const updateScript = async (id, userId, data) => {
@@ -36,14 +44,28 @@ const updateScript = async (id, userId, data) => {
   const existing = await prisma.script.findFirst({ where: { id, authorId: userId } });
   if (!existing) throw Object.assign(new Error('Script not found'), { status: 404 });
 
+  let savedVersion = false;
   if (data.content && data.content !== existing.content) {
     await prisma.scriptVersion.create({
       data: { scriptId: id, content: existing.content, version: existing.version },
     });
     data.version = existing.version + 1;
+    savedVersion = true;
   }
 
-  return prisma.script.update({ where: { id }, data });
+  const updated = await prisma.script.update({ where: { id }, data });
+
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  if (savedVersion) {
+    await triggerRealtimeNotification(
+      userId,
+      'Script Updated',
+      `Saved version ${updated.version} of "${updated.title}"`,
+      'EDITING_DEADLINE'
+    );
+  }
+
+  return updated;
 };
 
 const deleteScript = async (id, userId) => {

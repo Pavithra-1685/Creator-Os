@@ -23,7 +23,15 @@ const getRevenues = async (userId, { page = 1, limit = 20, source, from, to }) =
 };
 
 const createRevenue = async (userId, data) => {
-  return prisma.revenue.create({ data: { ...data, userId, date: new Date(data.date) } });
+  const rev = await prisma.revenue.create({ data: { ...data, userId, date: new Date(data.date) } });
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  await triggerRealtimeNotification(
+    userId,
+    'Revenue Logged',
+    `Added +Rs. ${rev.amount.toLocaleString('en-IN')} from ${rev.source} (${rev.description || 'No desc'})`,
+    'PAYMENT_REMINDER'
+  );
+  return rev;
 };
 
 const updateRevenue = async (id, userId, data) => {
@@ -56,7 +64,15 @@ const getExpenses = async (userId, { page = 1, limit = 20, category, from, to })
 };
 
 const createExpense = async (userId, data) => {
-  return prisma.expense.create({ data: { ...data, userId, date: new Date(data.date) } });
+  const exp = await prisma.expense.create({ data: { ...data, userId, date: new Date(data.date) } });
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  await triggerRealtimeNotification(
+    userId,
+    'Expense Logged',
+    `Added -Rs. ${exp.amount.toLocaleString('en-IN')} for ${exp.category} (${exp.description || 'No desc'})`,
+    'PAYMENT_REMINDER'
+  );
+  return exp;
 };
 
 const updateExpense = async (id, userId, data) => {

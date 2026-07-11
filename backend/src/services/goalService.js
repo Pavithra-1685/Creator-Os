@@ -13,7 +13,15 @@ const getGoalById = async (id, userId) => {
 };
 
 const createGoal = async (userId, data) => {
-  return prisma.goal.create({ data: { ...data, userId, deadline: data.deadline ? new Date(data.deadline) : undefined } });
+  const goal = await prisma.goal.create({ data: { ...data, userId, deadline: data.deadline ? new Date(data.deadline) : undefined } });
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  await triggerRealtimeNotification(
+    userId,
+    'Goal Defined',
+    `Created goal: "${goal.title}" to reach ${goal.targetValue} ${goal.unit}`,
+    'GOAL_ACHIEVED'
+  );
+  return goal;
 };
 
 const updateGoal = async (id, userId, data) => {
@@ -32,10 +40,29 @@ const incrementGoal = async (id, userId, increment) => {
   if (!goal) throw Object.assign(new Error('Goal not found'), { status: 404 });
   const newValue = goal.currentValue + increment;
   const isAchieved = newValue >= goal.targetValue;
-  return prisma.goal.update({
+  const updatedGoal = await prisma.goal.update({
     where: { id },
     data: { currentValue: newValue, isAchieved },
   });
+
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  if (isAchieved && !goal.isAchieved) {
+    await triggerRealtimeNotification(
+      userId,
+      'Goal Achieved! 🎯',
+      `You successfully reached your goal: "${goal.title}" (${goal.targetValue} ${goal.unit})`,
+      'GOAL_ACHIEVED'
+    );
+  } else {
+    await triggerRealtimeNotification(
+      userId,
+      'Goal Progress',
+      `"${goal.title}" progress updated: ${newValue}/${goal.targetValue} ${goal.unit}`,
+      'GOAL_ACHIEVED'
+    );
+  }
+
+  return updatedGoal;
 };
 
 const deleteGoal = async (id, userId) => {

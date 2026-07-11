@@ -64,7 +64,7 @@ export default function Login() {
             <label className="form-label">Password</label>
             <input 
               className="form-input"
-              placeholder="••••••••"
+              placeholder="Password"
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               type="password" 

@@ -52,10 +52,20 @@ const getTasks = async (userId, { status, priority, page = 1, limit = 20, teamId
 };
 
 const createTask = async (userId, data) => {
-  return prisma.task.create({
+  const task = await prisma.task.create({
     data: { ...data, userId, dueDate: data.dueDate ? new Date(data.dueDate) : undefined },
     include: { assignee: { select: { id: true, name: true, profileImage: true } } },
   });
+
+  const { triggerRealtimeNotification } = require('../utils/realtime');
+  await triggerRealtimeNotification(
+    userId,
+    'Task Created',
+    `New task "${task.title}" added to your workspace`,
+    'TEAM_MENTION'
+  );
+
+  return task;
 };
 
 const updateTask = async (id, userId, data) => {
