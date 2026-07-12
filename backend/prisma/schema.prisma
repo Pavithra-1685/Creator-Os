@@ -1,5 +1,3 @@
-// CreatorOS – Complete Prisma Schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,9 +7,415 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─────────────────────────────────────────────
-// ENUMS
-// ─────────────────────────────────────────────
+model User {
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  name               String?
+  password           String?
+  role               Role                @default(CREATOR)
+  isEmailVerified    Boolean             @default(false)
+  profileImage       String?
+  bio                String?
+  niche              String?
+  youtubeChannel     String?
+  instagramHandle    String?
+  tiktokHandle       String?
+  twitterHandle      String?
+  linkedinProfile    String?
+  timezone           String              @default("UTC")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  aiRequests         AIRequest[]
+  analytics          Analytics[]
+  assets             Asset[]
+  brands             Brand[]
+  campaigns          Campaign[]
+  content            ContentItem[]
+  expenses           Expense[]
+  goals              Goal[]
+  notifications      Notification[]
+  refreshTokens      RefreshToken[]
+  revenues           Revenue[]
+  scripts            Script[]
+  assignedTasks      Task[]              @relation("TaskAssignee")
+  tasks              Task[]
+  ownedTeams         Team[]              @relation("TeamOwner")
+  teamMemberships    TeamMember[]
+  verificationTokens VerificationToken[]
+
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  type      TokenType
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ContentItem {
+  id           String        @id @default(cuid())
+  title        String
+  description  String?
+  type         ContentType
+  platform     Platform      @default(YOUTUBE)
+  status       ContentStatus @default(IDEA)
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+  thumbnail    String?
+  tags         String[]
+  notes        String?
+  userId       String
+  scriptId     String?
+  campaignId   String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  analytics    Analytics[]
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id])
+  script       Script?       @relation(fields: [scriptId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([userId, scheduledFor])
+  @@index([userId, status])
+  @@index([userId, platform])
+}
+
+model Script {
+  id           String          @id @default(cuid())
+  title        String
+  content      String
+  hook         String?
+  shotList     String?
+  checklist    String?
+  status       ScriptStatus    @default(DRAFT)
+  version      Int             @default(1)
+  authorId     String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  contentItems ContentItem[]
+  author       User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  versions     ScriptVersion[]
+
+  @@index([authorId])
+}
+
+model ScriptVersion {
+  id        String   @id @default(cuid())
+  scriptId  String
+  content   String
+  version   Int
+  createdAt DateTime @default(now())
+  script    Script   @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+  @@index([scriptId])
+}
+
+model Task {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      TaskStatus    @default(TODO)
+  priority    TaskPriority  @default(MEDIUM)
+  userId      String
+  assigneeId  String?
+  contentId   String?
+  teamId      String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  assignee    User?         @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  content     ContentItem?  @relation(fields: [contentId], references: [id])
+  team        Team?         @relation(fields: [teamId], references: [id])
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    TaskComment[]
+
+  @@index([userId, dueDate])
+  @@index([userId, status])
+  @@index([assigneeId])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  content   String
+  taskId    String
+  authorId  String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+}
+
+model Goal {
+  id           String    @id @default(cuid())
+  title        String
+  type         GoalType
+  targetValue  Float
+  currentValue Float     @default(0)
+  unit         String
+  deadline     DateTime?
+  isAchieved   Boolean   @default(false)
+  userId       String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, type])
+}
+
+model Brand {
+  id           String     @id @default(cuid())
+  name         String
+  industry     String?
+  website      String?
+  contactName  String?
+  contactEmail String?
+  contactPhone String?
+  notes        String?
+  logoUrl      String?
+  userId       String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns    Campaign[]
+
+  @@index([userId])
+}
+
+model Campaign {
+  id           String          @id @default(cuid())
+  title        String
+  brandId      String
+  userId       String
+  status       BrandDealStatus @default(PROSPECTING)
+  budget       Float?
+  currency     String          @default("USD")
+  startDate    DateTime?
+  endDate      DateTime?
+  contractUrl  String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  brand        Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
+  deliverables Deliverable[]
+  payments     Payment[]
+
+  @@index([userId])
+  @@index([brandId])
+}
+
+model Deliverable {
+  id          String            @id @default(cuid())
+  title       String
+  description String?
+  platform    Platform
+  dueDate     DateTime?
+  status      DeliverableStatus @default(PENDING)
+  campaignId  String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  campaign    Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+}
+
+model Payment {
+  id         String        @id @default(cuid())
+  amount     Float
+  currency   String        @default("USD")
+  status     PaymentStatus @default(PENDING)
+  dueDate    DateTime?
+  paidAt     DateTime?
+  invoiceUrl String?
+  notes      String?
+  campaignId String
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  campaign   Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+}
+
+model Revenue {
+  id          String        @id @default(cuid())
+  amount      Float
+  currency    String        @default("USD")
+  source      RevenueSource
+  description String?
+  date        DateTime
+  platform    Platform?
+  userId      String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userId, source])
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  amount      Float
+  currency    String          @default("USD")
+  category    ExpenseCategory
+  description String?
+  date        DateTime
+  receiptUrl  String?
+  userId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userId, category])
+}
+
+model Asset {
+  id        String         @id @default(cuid())
+  name      String
+  url       String
+  publicId  String?
+  mimeType  String?
+  size      Int?
+  type      AssetType      @default(OTHER)
+  tags      String[]
+  folderId  String?
+  userId    String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  folder    AssetFolder?   @relation(fields: [folderId], references: [id])
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions  AssetVersion[]
+
+  @@index([userId])
+  @@index([userId, type])
+}
+
+model AssetFolder {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  assets    Asset[]
+
+  @@index([userId])
+}
+
+model AssetVersion {
+  id        String   @id @default(cuid())
+  assetId   String
+  url       String
+  version   Int
+  createdAt DateTime @default(now())
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+}
+
+model Analytics {
+  id               String       @id @default(cuid())
+  platform         Platform
+  date             DateTime
+  views            Int          @default(0)
+  watchTimeMinutes Int          @default(0)
+  likes            Int          @default(0)
+  comments         Int          @default(0)
+  shares           Int          @default(0)
+  impressions      Int          @default(0)
+  reach            Int          @default(0)
+  subscribers      Int          @default(0)
+  followers        Int          @default(0)
+  engagementRate   Float        @default(0)
+  userId           String
+  contentId        String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  content          ContentItem? @relation(fields: [contentId], references: [id])
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([userId, platform])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  message   String
+  type      NotificationType @default(SYSTEM)
+  isRead    Boolean          @default(false)
+  actionUrl String?
+  userId    String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  tasks       Task[]
+  owner       User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+
+  @@index([ownerId])
+}
+
+model TeamMember {
+  id       String         @id @default(cuid())
+  teamId   String
+  userId   String
+  role     MembershipRole @default(MEMBER)
+  joinedAt DateTime       @default(now())
+  team     Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model AIRequest {
+  id        String   @id @default(cuid())
+  type      String
+  prompt    String
+  result    String
+  model     String?
+  tokens    Int?
+  userId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, type])
+}
 
 enum Role {
   CREATOR
@@ -166,464 +570,4 @@ enum MembershipRole {
   ADMIN
   MEMBER
   VIEWER
-}
-
-// ─────────────────────────────────────────────
-// USER & AUTH
-// ─────────────────────────────────────────────
-
-model User {
-  id                String   @id @default(cuid())
-  email             String   @unique
-  name              String?
-  password          String?
-  role              Role     @default(CREATOR)
-  isEmailVerified   Boolean  @default(false)
-  profileImage      String?
-  bio               String?
-  niche             String?
-  youtubeChannel    String?
-  instagramHandle   String?
-  tiktokHandle      String?
-  twitterHandle     String?
-  linkedinProfile   String?
-  timezone          String   @default("UTC")
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  refreshTokens      RefreshToken[]
-  verificationTokens VerificationToken[]
-  scripts            Script[]
-  content            ContentItem[]
-  tasks              Task[]
-  goals              Goal[]
-  notifications      Notification[]
-  assets             Asset[]
-  brands             Brand[]
-  campaigns          Campaign[]
-  revenues           Revenue[]
-  expenses           Expense[]
-  analytics          Analytics[]
-  teamMemberships    TeamMember[]
-  ownedTeams         Team[]         @relation("TeamOwner")
-  assignedTasks      Task[]         @relation("TaskAssignee")
-  aiRequests         AIRequest[]
-
-  @@index([email])
-}
-
-model RefreshToken {
-  id        String   @id @default(cuid())
-  token     String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-}
-
-model VerificationToken {
-  id        String    @id @default(cuid())
-  token     String    @unique
-  type      TokenType
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  expiresAt DateTime
-  createdAt DateTime  @default(now())
-
-  @@index([userId])
-}
-
-// ─────────────────────────────────────────────
-// CONTENT CALENDAR
-// ─────────────────────────────────────────────
-
-model ContentItem {
-  id           String        @id @default(cuid())
-  title        String
-  description  String?
-  type         ContentType
-  platform     Platform      @default(YOUTUBE)
-  status       ContentStatus @default(IDEA)
-  scheduledFor DateTime?
-  publishedAt  DateTime?
-  thumbnail    String?
-  tags         String[]
-  notes        String?
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scriptId     String?
-  script       Script?       @relation(fields: [scriptId], references: [id])
-  campaignId   String?
-  campaign     Campaign?     @relation(fields: [campaignId], references: [id])
-  tasks        Task[]
-  analytics    Analytics[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  @@index([userId, scheduledFor])
-  @@index([userId, status])
-  @@index([userId, platform])
-}
-
-// ─────────────────────────────────────────────
-// SCRIPTS
-// ─────────────────────────────────────────────
-
-model Script {
-  id           String       @id @default(cuid())
-  title        String
-  content      String       @db.Text
-  hook         String?
-  shotList     String?      @db.Text
-  checklist    String?      @db.Text
-  status       ScriptStatus @default(DRAFT)
-  version      Int          @default(1)
-  authorId     String
-  author       User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  contentItems ContentItem[]
-  versions     ScriptVersion[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  @@index([authorId])
-}
-
-model ScriptVersion {
-  id        String   @id @default(cuid())
-  scriptId  String
-  script    Script   @relation(fields: [scriptId], references: [id], onDelete: Cascade)
-  content   String   @db.Text
-  version   Int
-  createdAt DateTime @default(now())
-
-  @@index([scriptId])
-}
-
-// ─────────────────────────────────────────────
-// TASKS
-// ─────────────────────────────────────────────
-
-model Task {
-  id           String       @id @default(cuid())
-  title        String
-  description  String?
-  dueDate      DateTime?
-  status       TaskStatus   @default(TODO)
-  priority     TaskPriority @default(MEDIUM)
-  userId       String
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assigneeId   String?
-  assignee     User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  contentId    String?
-  content      ContentItem? @relation(fields: [contentId], references: [id])
-  teamId       String?
-  team         Team?        @relation(fields: [teamId], references: [id])
-  comments     TaskComment[]
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-
-  @@index([userId, dueDate])
-  @@index([userId, status])
-  @@index([assigneeId])
-}
-
-model TaskComment {
-  id        String   @id @default(cuid())
-  content   String
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  authorId  String
-  createdAt DateTime @default(now())
-
-  @@index([taskId])
-}
-
-// ─────────────────────────────────────────────
-// GOALS
-// ─────────────────────────────────────────────
-
-model Goal {
-  id           String   @id @default(cuid())
-  title        String
-  type         GoalType
-  targetValue  Float
-  currentValue Float    @default(0)
-  unit         String
-  deadline     DateTime?
-  isAchieved   Boolean  @default(false)
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@index([userId])
-  @@index([userId, type])
-}
-
-// ─────────────────────────────────────────────
-// BRAND DEAL MANAGEMENT
-// ─────────────────────────────────────────────
-
-model Brand {
-  id              String    @id @default(cuid())
-  name            String
-  industry        String?
-  website         String?
-  contactName     String?
-  contactEmail    String?
-  contactPhone    String?
-  notes           String?
-  logoUrl         String?
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campaigns       Campaign[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([userId])
-}
-
-model Campaign {
-  id            String          @id @default(cuid())
-  title         String
-  brandId       String
-  brand         Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status        BrandDealStatus @default(PROSPECTING)
-  budget        Float?
-  currency      String          @default("USD")
-  startDate     DateTime?
-  endDate       DateTime?
-  contractUrl   String?
-  notes         String?
-  deliverables  Deliverable[]
-  payments      Payment[]
-  contentItems  ContentItem[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-
-  @@index([userId])
-  @@index([brandId])
-}
-
-model Deliverable {
-  id          String            @id @default(cuid())
-  title       String
-  description String?
-  platform    Platform
-  dueDate     DateTime?
-  status      DeliverableStatus @default(PENDING)
-  campaignId  String
-  campaign    Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-
-  @@index([campaignId])
-}
-
-model Payment {
-  id          String        @id @default(cuid())
-  amount      Float
-  currency    String        @default("USD")
-  status      PaymentStatus @default(PENDING)
-  dueDate     DateTime?
-  paidAt      DateTime?
-  invoiceUrl  String?
-  notes       String?
-  campaignId  String
-  campaign    Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@index([campaignId])
-}
-
-// ─────────────────────────────────────────────
-// REVENUE & EXPENSES
-// ─────────────────────────────────────────────
-
-model Revenue {
-  id          String        @id @default(cuid())
-  amount      Float
-  currency    String        @default("USD")
-  source      RevenueSource
-  description String?
-  date        DateTime
-  platform    Platform?
-  userId      String
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-
-  @@index([userId, date])
-  @@index([userId, source])
-}
-
-model Expense {
-  id          String          @id @default(cuid())
-  amount      Float
-  currency    String          @default("USD")
-  category    ExpenseCategory
-  description String?
-  date        DateTime
-  receiptUrl  String?
-  userId      String
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-
-  @@index([userId, date])
-  @@index([userId, category])
-}
-
-// ─────────────────────────────────────────────
-// ASSETS
-// ─────────────────────────────────────────────
-
-model Asset {
-  id          String    @id @default(cuid())
-  name        String
-  url         String
-  publicId    String?   // Cloudinary public ID
-  mimeType    String?
-  size        Int?
-  type        AssetType @default(OTHER)
-  tags        String[]
-  folderId    String?
-  folder      AssetFolder? @relation(fields: [folderId], references: [id])
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  versions    AssetVersion[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  @@index([userId])
-  @@index([userId, type])
-}
-
-model AssetFolder {
-  id        String   @id @default(cuid())
-  name      String
-  parentId  String?
-  userId    String
-  assets    Asset[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([userId])
-}
-
-model AssetVersion {
-  id        String   @id @default(cuid())
-  assetId   String
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  url       String
-  version   Int
-  createdAt DateTime @default(now())
-
-  @@index([assetId])
-}
-
-// ─────────────────────────────────────────────
-// ANALYTICS
-// ─────────────────────────────────────────────
-
-model Analytics {
-  id              String   @id @default(cuid())
-  platform        Platform
-  date            DateTime
-  views           Int      @default(0)
-  watchTimeMinutes Int     @default(0)
-  likes           Int      @default(0)
-  comments        Int      @default(0)
-  shares          Int      @default(0)
-  impressions     Int      @default(0)
-  reach           Int      @default(0)
-  subscribers     Int      @default(0)
-  followers       Int      @default(0)
-  engagementRate  Float    @default(0)
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contentId       String?
-  content         ContentItem? @relation(fields: [contentId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@index([userId, date])
-  @@index([userId, platform])
-}
-
-// ─────────────────────────────────────────────
-// NOTIFICATIONS
-// ─────────────────────────────────────────────
-
-model Notification {
-  id        String           @id @default(cuid())
-  title     String
-  message   String
-  type      NotificationType @default(SYSTEM)
-  isRead    Boolean          @default(false)
-  actionUrl String?
-  userId    String
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-
-  @@index([userId, isRead])
-  @@index([userId, createdAt])
-}
-
-// ─────────────────────────────────────────────
-// TEAMS & COLLABORATION
-// ─────────────────────────────────────────────
-
-model Team {
-  id          String       @id @default(cuid())
-  name        String
-  description String?
-  ownerId     String
-  owner       User         @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members     TeamMember[]
-  tasks       Task[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-
-  @@index([ownerId])
-}
-
-model TeamMember {
-  id        String         @id @default(cuid())
-  teamId    String
-  team      Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role      MembershipRole @default(MEMBER)
-  joinedAt  DateTime       @default(now())
-
-  @@unique([teamId, userId])
-  @@index([teamId])
-  @@index([userId])
-}
-
-// ─────────────────────────────────────────────
-// AI REQUESTS
-// ─────────────────────────────────────────────
-
-model AIRequest {
-  id        String   @id @default(cuid())
-  type      String   // caption, title, script, hashtag, etc.
-  prompt    String   @db.Text
-  result    String   @db.Text
-  model     String?
-  tokens    Int?
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@index([userId])
-  @@index([userId, type])
 }
