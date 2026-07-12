@@ -166,7 +166,7 @@ export default function Landing() {
         textAlign: 'center',
         fontWeight: '700'
       }}>
-        <p>Built by Pavithra</p>
+        <p>Empowering creators with AI. Designed & Developed by Pavithra H. &copy;2026</p>
       </footer>
     </div>
   );
