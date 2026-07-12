@@ -3,7 +3,7 @@ const logger = require('../utils/logger');
 const errorHandler = (err, req, res, next) => {
    console.error(err); // <-- temporary for debugging
 
-  logger.error(err.stack || err.message || JSON.stringify(err));
+  logger.error(err.stack || err.message || String(err));
   
   let status = err.status || 500;
   let message = err.message || 'Internal server error';
