@@ -1,0 +1,455 @@
+/* ======================================================================
+   GLOBAL RESPONSIVE STYLES
+   Single source of truth for all breakpoints (sidebar/header rules
+   duplicated in styles.css have been removed to avoid conflicts).
+
+   Breakpoints:
+     1024px  -> tablet: sidebar collapses to icon rail, grids go 1-col
+     768px   -> mobile: sidebar becomes off-canvas drawer, stacked layout
+     480px   -> small phone: tighter spacing, single-column everything
+====================================================================== */
+
+/* ---------------------------------------------------------------------
+   TABLET (<=1024px)
+--------------------------------------------------------------------- */
+@media (max-width: 1024px) {
+
+  :root {
+    --sidebar-width: 80px;
+  }
+
+  /* Icon-only rail: hide text labels, keep icons centered */
+  .sidebar-brand span,
+  .sidebar-link span,
+  .user-info {
+    display: none;
+  }
+
+  .sidebar-link {
+    justify-content: center;
+    padding: 14px 8px;
+  }
+
+  .sidebar-user {
+    justify-content: center;
+    padding: 12px 6px;
+  }
+
+  .main-wrapper {
+    margin-left: 80px;
+  }
+
+  .workspace-content {
+    padding: 22px;
+  }
+
+  .search-bar {
+    min-width: 220px;
+  }
+
+  .stat-card-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-center-grid,
+  .dashboard-bottom-grid,
+  .dashboard-two-col-grid,
+  .ai-workspace,
+  .script-workspace-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .notification-drawer {
+    width: 360px;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   MOBILE (<=768px)
+--------------------------------------------------------------------- */
+@media (max-width: 768px) {
+
+  :root {
+    --sidebar-width: 260px;
+  }
+
+  .app-layout {
+    display: block;
+  }
+
+  /* Sidebar becomes a full off-canvas drawer again (text visible) */
+  .sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    width: 260px;
+    height: 100vh;
+    z-index: 1500;
+    padding: 20px 16px;
+    transition: left 0.3s ease;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .sidebar-brand span,
+  .sidebar-link span,
+  .user-info {
+    display: flex;
+  }
+
+  .sidebar-link {
+    justify-content: flex-start;
+    padding: 14px 16px;
+  }
+
+  .sidebar-user {
+    justify-content: space-between;
+    padding: 16px 12px;
+  }
+
+  .hamburger-btn {
+    display: flex;
+  }
+
+  .main-wrapper {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .workspace-content {
+    padding: 18px;
+  }
+
+  .app-header {
+    padding: 14px 18px;
+    height: auto;
+    min-height: 70px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-actions {
+    width: auto;
+    justify-content: flex-end;
+    margin-left: auto;
+  }
+
+  .search-input-container {
+    width: 100%;
+  }
+
+  .search-bar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .search-results-dropdown {
+    max-height: 280px;
+  }
+
+  /* Profile / notification bell */
+  .profile-dropdown-menu {
+    right: 0;
+    left: auto;
+    width: 200px;
+    max-width: calc(100vw - 32px);
+  }
+
+  .notification-drawer-overlay {
+    justify-content: stretch;
+  }
+
+  .notification-drawer {
+    width: 100%;
+  }
+
+  .notification-item-card {
+    flex-wrap: wrap;
+  }
+
+  /* Stat cards & dashboard grids */
+  .stat-card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid,
+  .dashboard-center-grid,
+  .dashboard-bottom-grid,
+  .dashboard-two-col-grid {
+    gap: 16px;
+  }
+
+  .panel-card,
+  .stat-card {
+    padding: 18px;
+  }
+
+  /* Kanban pipeline: stack stages full-width instead of horizontal scroll */
+  .workflow-stages {
+    flex-direction: column;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+
+  .workflow-stage {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Weekly calendar: each cell already carries its own day/date label,
+     so a single column list fits perfectly with no horizontal scroll */
+  .calendar-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .calendar-cell {
+    min-height: 0;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .calendar-date-number {
+    flex-shrink: 0;
+    min-width: 90px;
+  }
+
+  /* Data tables: card-style stacked rows instead of horizontal scroll,
+     using data-label attributes set in the JSX for each <td> */
+  .finance-table thead {
+    display: none;
+  }
+
+  .finance-table,
+  .finance-table tbody,
+  .finance-table tr,
+  .finance-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .finance-table tr {
+    margin-bottom: 14px;
+    border: var(--border-width) solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: 2px 2px 0px var(--border-color);
+  }
+
+  .finance-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    text-align: right;
+    border-bottom: 1.5px solid var(--border-color);
+    border-top: none;
+    background: none;
+  }
+
+  .finance-table td:last-child {
+    border-bottom: none;
+    justify-content: center;
+  }
+
+  .finance-table td[data-label]::before {
+    content: attr(data-label);
+    font-family: var(--font-title);
+    font-weight: 800;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    text-align: left;
+  }
+
+  .asset-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-bar-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .chart-bar-container > .chart-bar {
+    min-width: 36px;
+  }
+
+  .script-textarea {
+    height: 320px;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+
+  .modal-content {
+    width: 95%;
+    padding: 24px 20px;
+  }
+
+  .notification-drawer-footer {
+    flex-wrap: wrap;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Utility: collapse inline-styled grids on tablet/mobile
+   Dashboard uses inline gridTemplateColumns for several forms/layouts.
+   Inline styles beat plain CSS specificity, so these overrides use
+   !important and are opted into via the .grid-collapse-mobile class
+   added in the JSX.
+--------------------------------------------------------------------- */
+@media (max-width: 768px) {
+
+  .grid-collapse-mobile {
+    grid-template-columns: 1fr !important;
+  }
+
+  .flex-wrap-mobile {
+    flex-wrap: wrap;
+  }
+
+  .flex-wrap-mobile > * {
+    flex: 1 1 100%;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Landing page: bento features grid
+--------------------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .landing-features-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .bento-item-span-4,
+  .bento-item-span-6,
+  .bento-item-span-8,
+  .bento-item-span-12 {
+    grid-column: span 12 !important;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Dashboard header: avoid overflow on small phones
+--------------------------------------------------------------------- */
+@media (max-width: 520px) {
+
+  .btn-label-text {
+    display: none;
+  }
+
+  .header-actions .btn-primary {
+    width: auto !important;
+    padding: 10px 14px !important;
+  }
+
+  .header-profile-text {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+
+  .confirm-card {
+    width: 90% !important;
+  }
+
+  .toast-container {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .toast {
+    max-width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   SMALL MOBILE (<=480px)
+--------------------------------------------------------------------- */
+@media (max-width: 480px) {
+
+  .workspace-content {
+    padding: 14px;
+  }
+
+  .app-header h2 {
+    font-size: 1.4rem;
+  }
+
+  .panel-card {
+    padding: 14px;
+  }
+
+  .stat-value {
+    font-size: 1.8rem;
+  }
+
+  .auth-card {
+    padding: 20px;
+  }
+
+  .btn-primary,
+  .btn-secondary,
+  .btn-action {
+    width: 100%;
+  }
+
+  .sidebar {
+    width: 85vw;
+    left: -85vw;
+  }
+
+  .modal-content {
+    padding: 20px 16px;
+  }
+
+  .modal-header h3,
+  .modal-header .panel-card-title {
+    font-size: 1.05rem;
+  }
+
+  .calendar-cell {
+    padding: 8px;
+  }
+
+  .calendar-date-number {
+    min-width: 74px;
+    font-size: 0.95rem;
+  }
+
+  .notification-drawer-header,
+  .notification-drawer-content,
+  .notification-drawer-footer {
+    padding: 14px;
+  }
+
+  .notification-item-card {
+    padding: 10px;
+  }
+
+  .profile-dropdown-menu {
+    width: 180px;
+  }
+
+  .goal-item {
+    padding: 14px;
+  }
+
+  .asset-preview {
+    height: 110px;
+  }
+
+  .script-textarea {
+    height: 260px;
+    padding: 16px;
+  }
+
+}

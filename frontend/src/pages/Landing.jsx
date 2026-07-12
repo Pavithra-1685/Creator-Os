@@ -1,3 +1,4 @@
+
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BotIcon, BriefcaseIcon, CalendarIcon, WalletIcon } from '../components/Icons';
@@ -8,32 +9,34 @@ export default function Landing() {
   return (
     <div style={{ backgroundColor: 'var(--bg-main)', minHeight: '100vh', color: 'var(--text-primary)', fontFamily: 'var(--font-body)' }}>
       {/* Header / Top Navigation */}
-      <nav style={{ 
+      <nav className="landing-nav" style={{ 
         display: 'flex', 
+        flexWrap: 'wrap',
         justifyContent: 'space-between', 
         alignItems: 'center', 
-        padding: '20px 40px', 
+        gap: '16px',
+        padding: 'clamp(14px, 4vw, 20px) clamp(18px, 5vw, 40px)', 
         borderBottom: 'var(--border-width) solid var(--border-color)', 
         backgroundColor: 'var(--bg-sidebar)' 
       }}>
-        <div className="sidebar-brand" style={{ fontSize: '2rem' }}>
+        <div className="sidebar-brand" style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)' }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#FF3E7F" stroke="#111111" strokeWidth="2" />
             <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="#111111" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           <span>CreatorOS</span>
         </div>
-        <div style={{ display: 'flex', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginLeft: 'auto', justifyContent: 'flex-end' }}>
           {user ? (
-            <Link to="/dashboard" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', fontSize: '1rem', width: 'auto' }}>
+            <Link to="/dashboard" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', fontSize: '0.95rem', width: 'auto' }}>
               Go to Dashboard
             </Link>
           ) : (
             <>
-              <Link to="/login" className="btn-secondary" style={{ textDecoration: 'none', padding: '10px 20px', fontSize: '1rem' }}>
+              <Link to="/login" className="btn-secondary" style={{ textDecoration: 'none', padding: '8px 16px', fontSize: '0.85rem', width: 'auto' }}>
                 Log In
               </Link>
-              <Link to="/register" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', fontSize: '1rem', width: 'auto' }}>
+              <Link to="/register" className="btn-primary" style={{ textDecoration: 'none', padding: '10px 20px', fontSize: '0.95rem', width: 'auto' }}>
                 Start Free Trial
               </Link>
             </>
@@ -43,15 +46,15 @@ export default function Landing() {
 
       {/* Hero Section */}
       <header style={{ 
-        padding: '80px 40px 60px 40px', 
+        padding: 'clamp(48px, 10vw, 80px) clamp(20px, 5vw, 40px) clamp(40px, 8vw, 60px)', 
         textAlign: 'center', 
         background: 'linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-main) 100%)',
         borderBottom: 'var(--border-width) solid var(--border-color)'
       }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <h1 style={{ 
-            fontSize: '4.5rem', 
-            lineHeight: '1.1', 
+            fontSize: 'clamp(2.2rem, 7vw, 4.5rem)', 
+            lineHeight: '1.15', 
             marginBottom: '24px', 
             fontFamily: 'var(--font-title)',
             fontWeight: '800'
@@ -59,7 +62,7 @@ export default function Landing() {
             The AI-Powered Operating System for <span style={{ color: 'var(--pink-hot)', textDecoration: 'underline' }}>Content Creators</span>
           </h1>
           <p style={{ 
-            fontSize: '1.25rem', 
+            fontSize: 'clamp(1rem, 2.5vw, 1.25rem)', 
             fontWeight: '600', 
             color: 'var(--text-secondary)', 
             marginBottom: '40px',
@@ -69,11 +72,11 @@ export default function Landing() {
           }}>
             Ditch the fragmented workspace of Notion, ChatGPT, Google Sheets, and Trello. CreatorOS consolidates your calendar, scripts, brand deals, and analytics into one pink-brutalist master dashboard.
           </p>
-          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center' }}>
-            <Link to="/register" className="btn-primary" style={{ textDecoration: 'none', padding: '16px 36px', fontSize: '1.2rem', width: 'auto' }}>
+          <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/register" className="btn-primary" style={{ textDecoration: 'none', padding: '16px 36px', fontSize: '1.1rem', width: 'auto' }}>
               Claim Your Workspace
             </Link>
-            <a href="#features" className="btn-secondary" style={{ textDecoration: 'none', padding: '16px 36px', fontSize: '1.2rem' }}>
+            <a href="#features" className="btn-secondary" style={{ textDecoration: 'none', padding: '16px 36px', fontSize: '1.1rem' }}>
               See Features
             </a>
           </div>
@@ -81,15 +84,15 @@ export default function Landing() {
       </header>
 
       {/* Bento Grid Features */}
-      <section id="features" style={{ padding: '80px 40px', maxWidth: '1200px', margin: '0 auto' }}>
-        <h2 style={{ fontSize: '2.8rem', textAlign: 'center', marginBottom: '16px', fontFamily: 'var(--font-title)' }}>
+      <section id="features" style={{ padding: 'clamp(48px, 8vw, 80px) clamp(20px, 5vw, 40px)', maxWidth: '1200px', margin: '0 auto' }}>
+        <h2 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.8rem)', textAlign: 'center', marginBottom: '16px', fontFamily: 'var(--font-title)' }}>
           Supercharge Your Workflow
         </h2>
-        <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', fontWeight: '600', textAlign: 'center', marginBottom: '60px' }}>
+        <p style={{ fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', color: 'var(--text-secondary)', fontWeight: '600', textAlign: 'center', marginBottom: '60px' }}>
           Everything a professional creator needs, built right into a high-fidelity system.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '30px' }}>
+        <div className="landing-features-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '30px' }}>
           {/* Card 1: Content Calendar */}
           <div className="panel-card highlight-pink bento-item-span-8" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>

@@ -1337,3 +1337,65 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
+/* ===========================
+   Authentication Responsive
+=========================== */
+
+@media (max-width:768px){
+
+.auth-container{
+    padding:20px;
+}
+
+.auth-card{
+    width:100%;
+    max-width:420px;
+    padding:28px 22px;
+    box-shadow:4px 4px 0 var(--border-color);
+}
+
+.auth-logo{
+    font-size:2rem;
+}
+
+.auth-subtitle{
+    font-size:.9rem;
+}
+
+.form-input{
+    font-size:16px;
+}
+
+.btn-primary{
+    font-size:1rem;
+}
+
+}
+
+@media(max-width:480px){
+
+.auth-container{
+    padding:16px;
+}
+
+.auth-card{
+    padding:22px 18px;
+}
+
+.auth-logo{
+    font-size:1.7rem;
+}
+
+.auth-subtitle{
+    margin-bottom:20px;
+}
+
+.form-group{
+    margin-bottom:16px;
+}
+
+.btn-primary{
+    padding:13px;
+}
+
+}

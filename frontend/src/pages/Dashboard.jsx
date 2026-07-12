@@ -1096,7 +1096,7 @@ export default function Dashboard() {
               </div>
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
                 <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><ImageIcon size={20} /> Raw Assets & Uploads</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   {assets.slice(0, 4).map(asset => (
                     <div key={asset.id} style={{ border: '2px solid #111', padding: '8px', borderRadius: '4px', background: 'var(--bg-main)', fontSize: '0.75rem', fontWeight: '800', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {asset.name}
@@ -1183,7 +1183,7 @@ export default function Dashboard() {
             <div className="dashboard-two-col-grid">
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
                 <h3 className="icon-heading" style={{ marginBottom: '16px', fontSize: '1.2rem' }}><ImageIcon size={20} /> Brand Assets & Materials</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                <div className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                   {assets.map(asset => (
                     <div key={asset.id} style={{ border: '2px solid #111', padding: '10px', borderRadius: '6px', background: 'white', textAlign: 'center', boxShadow: '2px 2px 0px #111' }}>
                       <ImageIcon size={24} />
@@ -1406,23 +1406,6 @@ export default function Dashboard() {
             </li>
           ))}
         </ul>
-
-        <div className="sidebar-user" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: 'auto', padding: '16px 0', borderTop: '2px solid var(--border-color)' }}>
-          {user?.profileImage ? (
-            <img src={user.profileImage} alt={userName} style={{ width: '36px', height: '36px', borderRadius: '50%', border: '2px solid #111111', objectFit: 'cover' }} />
-          ) : (
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--pink-soft)', border: '2px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800' }}>
-              {userAvatarLetter}
-            </div>
-          )}
-          <div className="user-info" style={{ flex: 1 }}>
-            <div className="user-name" style={{ fontSize: '0.9rem', fontWeight: '800' }}>{userName}</div>
-            <div className="user-role" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{getRoleLabel(userRole)}</div>
-          </div>
-          <button onClick={handleLogout} className="logout-btn" title="Log out" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-            <LogOutIcon size={18} />
-          </button>
-        </div>
       </aside>
 
       {/* Main Container */}
@@ -1484,7 +1467,7 @@ export default function Dashboard() {
               }}
             >
               <PlusIcon size={18} />
-               CREATE NEW
+              <span className="btn-label-text"> CREATE NEW</span>
             </button>
 
             <div className="notification-bell" onClick={() => setShowNotifDrawer(true)}>
@@ -1503,7 +1486,7 @@ export default function Dashboard() {
                 ) : (
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--pink-soft)', border: '2px solid #111111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.2rem' }}>{userAvatarLetter}</div>
                 )}
-                <div>
+                <div className="header-profile-text">
                   <div style={{ fontSize: '0.9rem', fontWeight: '800' }}>Hi, {userName}!</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{getRoleLabel(userRole)}</div>
                 </div>
@@ -1559,7 +1542,7 @@ export default function Dashboard() {
             <div>
               <div className="panel-card" style={{ marginBottom: '24px' }}>
                 <h3 style={{ fontSize: '1.3rem' }}>Create Workflow Content</h3>
-                <form onSubmit={handleAddContent} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.2fr', gap: '16px', marginTop: '16px' }}>
+                <form onSubmit={handleAddContent} className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1.2fr', gap: '16px', marginTop: '16px' }}>
                   <input className="form-input" placeholder="Title" value={newContent.title} onChange={e => setNewContent({ ...newContent, title: e.target.value })} required />
                   <select className="form-input" value={newContent.type} onChange={e => setNewContent({ ...newContent, type: e.target.value })} style={{ backgroundColor: 'white' }}>
                     <option value="YOUTUBE_VIDEO">YouTube Video</option>
@@ -1672,7 +1655,7 @@ export default function Dashboard() {
             <div>
               <div className="panel-card" style={{ marginBottom: '24px' }}>
                 <h3>Add New Brand Deal</h3>
-                <form onSubmit={handleAddBrand} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1.5fr', gap: '16px', marginTop: '16px' }}>
+                <form onSubmit={handleAddBrand} className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1.5fr', gap: '16px', marginTop: '16px' }}>
                   <input className="form-input" placeholder="Brand Name" value={newBrand.name} onChange={e => setNewBrand({ ...newBrand, name: e.target.value })} required />
                   <input className="form-input" placeholder="Campaign Name" value={newBrand.campaignName} onChange={e => setNewBrand({ ...newBrand, campaignName: e.target.value })} required />
                   <input className="form-input" placeholder="Value (Rs.)" type="number" value={newBrand.dealValue} onChange={e => setNewBrand({ ...newBrand, dealValue: e.target.value })} required />
@@ -1696,16 +1679,16 @@ export default function Dashboard() {
                   <tbody>
                     {brandDeals.map(deal => (
                       <tr key={deal.id}>
-                        <td>{deal.brand?.name || deal.name || '-'}</td>
-                        <td>{deal.title || deal.campaignName || '-'}</td>
-                        <td className="amount-positive">Rs. {(deal.budget || deal.dealValue || 0).toLocaleString('en-IN')}</td>
-                        <td>{deal.brand?.industry || 'General'}</td>
-                        <td>
+                        <td data-label="Brand">{deal.brand?.name || deal.name || '-'}</td>
+                        <td data-label="Campaign">{deal.title || deal.campaignName || '-'}</td>
+                        <td data-label="Value" className="amount-positive">Rs. {(deal.budget || deal.dealValue || 0).toLocaleString('en-IN')}</td>
+                        <td data-label="Platform">{deal.brand?.industry || 'General'}</td>
+                        <td data-label="Status">
                           <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1.5px solid #111111', background: deal.status === 'COMPLETED' ? 'var(--mint)' : deal.status === 'ACTIVE' ? 'var(--yellow)' : 'var(--lavender)', color: 'var(--text-primary)', fontWeight: '800' }}>
                             {deal.status}
                           </span>
                         </td>
-                        <td><button onClick={() => triggerConfirm('Delete Deal', `Delete this brand deal?`, () => handleDeleteItem('brand', deal.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
+                        <td data-label="Actions"><button onClick={() => triggerConfirm('Delete Deal', `Delete this brand deal?`, () => handleDeleteItem('brand', deal.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
                       </tr>
                     ))}
                     {brandDeals.length === 0 && (
@@ -1722,7 +1705,7 @@ export default function Dashboard() {
             <div>
               <div className="panel-card" style={{ marginBottom: '24px' }}>
                 <h3>Log Transaction</h3>
-                <form onSubmit={handleAddFinance} style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1.5fr', gap: '16px', marginTop: '16px' }}>
+                <form onSubmit={handleAddFinance} className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr 1.5fr', gap: '16px', marginTop: '16px' }}>
                   <input className="form-input" placeholder="Description" value={newFinance.description} onChange={e => setNewFinance({ ...newFinance, description: e.target.value })} required />
                   <input className="form-input" placeholder="Amount (Rs.)" type="number" step="0.01" value={newFinance.amount} onChange={e => setNewFinance({ ...newFinance, amount: e.target.value })} required />
                   <select className="form-input" value={newFinance.type} onChange={e => setNewFinance({ ...newFinance, type: e.target.value })} style={{ backgroundColor: 'white' }}>
@@ -1748,20 +1731,20 @@ export default function Dashboard() {
                   <tbody>
                     {revenues.map(rec => (
                       <tr key={rec.id}>
-                        <td>{rec.description || '-'}</td>
-                        <td>{rec.source}</td>
-                        <td style={{ color: 'var(--pink-hot)', fontWeight: '800' }}>REVENUE</td>
-                        <td className="amount-positive">+Rs. {parseFloat(rec.amount).toLocaleString('en-IN')}</td>
-                        <td><button onClick={() => triggerConfirm('Delete Revenue', `Delete this revenue transaction?`, () => handleDeleteItem('revenue', rec.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
+                        <td data-label="Description">{rec.description || '-'}</td>
+                        <td data-label="Category / Source">{rec.source}</td>
+                        <td data-label="Type" style={{ color: 'var(--pink-hot)', fontWeight: '800' }}>REVENUE</td>
+                        <td data-label="Amount" className="amount-positive">+Rs. {parseFloat(rec.amount).toLocaleString('en-IN')}</td>
+                        <td data-label="Actions"><button onClick={() => triggerConfirm('Delete Revenue', `Delete this revenue transaction?`, () => handleDeleteItem('revenue', rec.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
                       </tr>
                     ))}
                     {expenses.map(rec => (
                       <tr key={rec.id}>
-                        <td>{rec.description || '-'}</td>
-                        <td>{rec.category}</td>
-                        <td style={{ fontWeight: '800' }}>EXPENSE</td>
-                        <td className="amount-negative">-Rs. {parseFloat(rec.amount).toLocaleString('en-IN')}</td>
-                        <td><button onClick={() => triggerConfirm('Delete Expense', `Delete this expense transaction?`, () => handleDeleteItem('expense', rec.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
+                        <td data-label="Description">{rec.description || '-'}</td>
+                        <td data-label="Category / Source">{rec.category}</td>
+                        <td data-label="Type" style={{ fontWeight: '800' }}>EXPENSE</td>
+                        <td data-label="Amount" className="amount-negative">-Rs. {parseFloat(rec.amount).toLocaleString('en-IN')}</td>
+                        <td data-label="Actions"><button onClick={() => triggerConfirm('Delete Expense', `Delete this expense transaction?`, () => handleDeleteItem('expense', rec.id))} className="btn-action" style={{ fontSize: '0.75rem', padding: '4px 8px', background: 'var(--pink-soft)' }}>Delete</button></td>
                       </tr>
                     ))}
                     {revenues.length === 0 && expenses.length === 0 && (
@@ -1779,7 +1762,7 @@ export default function Dashboard() {
               <div className="panel-card" style={{ marginBottom: '24px' }}>
                 <h3>Upload Media Asset</h3>
                 <p className="secondary-text">Store and tag raw assets, edits, and thumbnails.</p>
-                <form onSubmit={handleUploadAsset} style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
+                <form onSubmit={handleUploadAsset} className="flex-wrap-mobile" style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
                   <input className="form-input" type="file" onChange={(e) => setAssetFile(e.target.files?.[0] || null)} />
                   <button className="btn-primary" type="submit" style={{ width: 'auto' }}>Upload File</button>
                 </form>
@@ -1813,7 +1796,7 @@ export default function Dashboard() {
             <div>
               <div className="panel-card" style={{ marginBottom: '24px' }}>
                 <h3>Define Goal</h3>
-                <form onSubmit={handleAddGoal} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1.2fr 1.2fr', gap: '16px', marginTop: '16px' }}>
+                <form onSubmit={handleAddGoal} className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1.2fr 1.2fr', gap: '16px', marginTop: '16px' }}>
                   <input className="form-input" placeholder="Goal Title" value={newGoal.title} onChange={e => setNewGoal({ ...newGoal, title: e.target.value })} required />
                   <select className="form-input" value={newGoal.type} onChange={e => setNewGoal({ ...newGoal, type: e.target.value })} style={{ backgroundColor: 'white' }}>
                     <option value="UPLOADS">Uploads</option>
@@ -1920,7 +1903,7 @@ export default function Dashboard() {
               <h3>Channel Performance</h3>
               <p className="secondary-text">Monthly performance tracker across connected video platforms.</p>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', margin: '24px 0' }}>
+              <div className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', margin: '24px 0' }}>
                 <div className="stat-card highlight-yellow">
                   <span className="stat-title">Subscribers</span>
                   <div className="stat-value">{formatCompactNumber(analyticsData.subscribers)}</div>
@@ -1959,7 +1942,7 @@ export default function Dashboard() {
 
           {/* ==================== TABS: PROFILE ==================== */}
           {activeTab === 'profile' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '30px' }}>
+            <div className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '30px' }}>
               <div className="panel-card" style={{ alignSelf: 'start', textAlign: 'center' }}>
                 {user?.profileImage ? (
                   <img src={user.profileImage} alt={userName} style={{ width: '120px', height: '120px', borderRadius: '50%', border: '4px solid #111111', objectFit: 'cover', margin: '0 auto 16px auto', display: 'block', boxShadow: '4px 4px 0 #111' }} />
@@ -1987,7 +1970,7 @@ export default function Dashboard() {
 
                 {profileSubTab === 'edit' ? (
                   <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div className="form-group">
                         <label className="form-label">Full Name</label>
                         <input className="form-input" value={profileEditForm.name} onChange={e => setProfileEditForm({ ...profileEditForm, name: e.target.value })} required />
@@ -2005,7 +1988,7 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div className="form-group">
                         <label className="form-label">Content Niche</label>
                         <input className="form-input" placeholder="e.g. Tech, Finance, Vlogs" value={profileEditForm.niche} onChange={e => setProfileEditForm({ ...profileEditForm, niche: e.target.value })} />
@@ -2016,7 +1999,7 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                    <div className="grid-collapse-mobile" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                       <div className="form-group">
                         <label className="form-label">Instagram Handle</label>
                         <input className="form-input" placeholder="@instagram_handle" value={profileEditForm.socialInstagram} onChange={e => setProfileEditForm({ ...profileEditForm, socialInstagram: e.target.value })} />
