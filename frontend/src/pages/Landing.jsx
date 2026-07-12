@@ -166,7 +166,7 @@ export default function Landing() {
         textAlign: 'center',
         fontWeight: '700'
       }}>
-        <p>(c) {new Date().getFullYear()} CreatorOS. Not affiliated with Notion or Gumroad, but made with absolute brutalist passion.</p>
+        <p>Built by Pavithra</p>
       </footer>
     </div>
   );
