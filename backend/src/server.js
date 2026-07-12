@@ -8,9 +8,11 @@ const PORT = process.env.PORT || 4000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"]
-  }
+    origin: process.env.CLIENT_URL,
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+    credentials: true
+  },
+  transports: ["websocket", "polling"]
 });
 
 global.io = io;
