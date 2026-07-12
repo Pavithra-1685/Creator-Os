@@ -111,6 +111,8 @@ export default function Dashboard() {
   const [toasts, setToasts] = useState([]);
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
 
+  const [profileSubTab, setProfileSubTab] = useState('edit');
+
   // Profile Settings Form State
   const [profileEditForm, setProfileEditForm] = useState({
     name: '', bio: '', niche: '',
@@ -1056,7 +1058,7 @@ export default function Dashboard() {
       case 'VIDEO_EDITOR':
         return (
           <>
-            <div className="dashboard-center-grid">
+            <div className="dashboard-center-grid" style={{ gridTemplateColumns: '1fr' }}>
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
                 <div className="panel-card-header">
                   <h3 className="panel-card-title"><VideoIcon size={20} /> Video Editing Pipeline</h3>
@@ -1077,7 +1079,6 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-              {renderNotificationsWidget()}
             </div>
             <div className="dashboard-two-col-grid">
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('script')}>
@@ -1149,16 +1150,15 @@ export default function Dashboard() {
                 </form>
               </div>
             </div>
-            <div className="dashboard-two-col-grid">
+            <div className="dashboard-two-col-grid" style={{ gridTemplateColumns: '1fr' }}>
               {renderCalendarWidget()}
-              {renderNotificationsWidget()}
             </div>
           </>
         );
       case 'THUMBNAIL_DESIGNER':
         return (
           <>
-            <div className="dashboard-center-grid">
+            <div className="dashboard-center-grid" style={{ gridTemplateColumns: '1fr' }}>
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
                 <div className="panel-card-header">
                   <h3 className="panel-card-title"><ImageIcon size={20} /> Thumbnail Requests Queue</h3>
@@ -1179,7 +1179,6 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-              {renderNotificationsWidget()}
             </div>
             <div className="dashboard-two-col-grid">
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('assets')}>
@@ -1232,7 +1231,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="dashboard-two-col-grid">
+            <div className="dashboard-two-col-grid" style={{ gridTemplateColumns: '1fr' }}>
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('finance')}>
                 <h3 className="panel-card-title"><WalletIcon size={20} /> Financial summary</h3>
                 <div style={{ marginTop: '12px' }}>
@@ -1250,7 +1249,6 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-              {renderNotificationsWidget()}
             </div>
           </>
         );
@@ -1293,7 +1291,7 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="dashboard-two-col-grid">
+            <div className="dashboard-two-col-grid" style={{ gridTemplateColumns: '1fr' }}>
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('analytics')}>
                 <h3 className="panel-card-title"><BarChartIcon size={20} /> Performance Chart</h3>
                 <div style={{ display: 'flex', alignItems: 'flex-end', height: '120px', gap: '10px', marginTop: '16px', borderBottom: '2px solid #111' }}>
@@ -1306,7 +1304,6 @@ export default function Dashboard() {
                   })}
                 </div>
               </div>
-              {renderNotificationsWidget()}
             </div>
           </>
         );
@@ -1315,9 +1312,8 @@ export default function Dashboard() {
       default:
         return (
           <>
-            <div className="dashboard-center-grid">
+            <div className="dashboard-center-grid" style={{ gridTemplateColumns: '1fr' }}>
               {renderCalendarWidget()}
-              {renderNotificationsWidget()}
             </div>
             <div className="dashboard-bottom-grid">
               <div className="panel-card" style={{ cursor: 'pointer' }} onClick={() => setActiveTab('content')}>
@@ -1514,11 +1510,11 @@ export default function Dashboard() {
               </div>
               {showProfileDropdown && (
                 <div className="profile-dropdown-menu">
-                  <button className="profile-dropdown-item" onClick={() => { setActiveTab('profile'); setShowProfileDropdown(false); }}>👤 Edit Profile</button>
-                  <button className="profile-dropdown-item" onClick={() => { setActiveTab('goals'); setShowProfileDropdown(false); }}>🎯 Goals & Settings</button>
-                  <button className="profile-dropdown-item" onClick={() => { setShowNotifDrawer(true); setShowProfileDropdown(false); }}>🔔 Notifications</button>
+                  <button className="profile-dropdown-item" onClick={() => { setActiveTab('profile'); setShowProfileDropdown(false); }}>Edit Profile</button>
+                  <button className="profile-dropdown-item" onClick={() => { setActiveTab('goals'); setShowProfileDropdown(false); }}>Goals & Settings</button>
+                  <button className="profile-dropdown-item" onClick={() => { setShowNotifDrawer(true); setShowProfileDropdown(false); }}>Notifications</button>
                   <div style={{ borderTop: '2px solid #111', margin: '4px 0' }} />
-                  <button className="profile-dropdown-item" onClick={() => { handleLogout(); setShowProfileDropdown(false); }} style={{ color: 'var(--pink-hot)' }}>🚪 Logout</button>
+                  <button className="profile-dropdown-item" onClick={() => { handleLogout(); setShowProfileDropdown(false); }} style={{ color: 'var(--pink-hot)' }}>Logout</button>
                 </div>
               )}
             </div>
@@ -1977,9 +1973,9 @@ export default function Dashboard() {
                   {getRoleLabel(userRole)}
                 </div>
                 <div style={{ fontSize: '0.82rem', color: '#555', fontWeight: '700', borderTop: '2.5px solid #111', paddingTop: '16px', textAlign: 'left' }}>
-                  <div style={{ marginBottom: '8px' }}>📧 <strong>Email:</strong> {user?.email}</div>
-                  {user?.niche && <div style={{ marginBottom: '8px' }}>🎯 <strong>Niche:</strong> {user.niche}</div>}
-                  {user?.bio && <div style={{ lineBreak: 'anywhere' }}>📝 <strong>Bio:</strong> {user.bio}</div>}
+                  <div style={{ marginBottom: '8px' }}><strong>Email:</strong> {user?.email}</div>
+                  {user?.niche && <div style={{ marginBottom: '8px' }}><strong>Niche:</strong> {user.niche}</div>}
+                  {user?.bio && <div style={{ lineBreak: 'anywhere' }}><strong>Bio:</strong> {user.bio}</div>}
                 </div>
               </div>
 
@@ -2100,7 +2096,7 @@ export default function Dashboard() {
         <div className="notification-drawer-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowNotifDrawer(false); }}>
           <div className="notification-drawer">
             <div className="notification-drawer-header">
-              <h3 style={{ margin: 0, fontWeight: '900', fontSize: '1.1rem' }}>🔔 Notifications</h3>
+              <h3 style={{ margin: 0, fontWeight: '900', fontSize: '1.1rem' }}>Notifications</h3>
               <button onClick={() => setShowNotifDrawer(false)} style={{ background: 'none', border: '2px solid #111', borderRadius: '6px', padding: '4px 10px', fontWeight: '800', cursor: 'pointer' }}>✕</button>
             </div>
             <div className="notification-drawer-content">
