@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "main": "src/server.js",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon --watch src -e js --exec node src/server.js",
-    "migrate": "prisma migrate dev",
-    "generate": "prisma generate",
-    "test": "node --test"
-  },
+ "scripts": {
+  "start": "node src/server.js",
+  "dev": "nodemon --watch src -e js --exec node src/server.js",
+  "generate": "prisma generate",
+  "postinstall": "prisma generate",
+  "migrate": "prisma migrate dev",
+  "test": "node --test"
+},
   "engines": {
     "node": ">=18"
   },
