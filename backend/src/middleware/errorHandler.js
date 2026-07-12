@@ -1,7 +1,9 @@
 const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
-  logger.error(err);
+   console.error(err); // <-- temporary for debugging
+
+  logger.error(err.stack || err.message || JSON.stringify(err));
   
   let status = err.status || 500;
   let message = err.message || 'Internal server error';
