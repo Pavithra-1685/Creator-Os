@@ -22,4 +22,13 @@ const updateContent = wrap(async (req, res) => {
   res.json({ success: true, message: 'Content item updated', data: { item } });
 });
 
-module.exports = { listContent, createContent, updateContent };
+const deleteContent = wrap(async (req, res) => {
+  await contentService.deleteContent(req.params.id, req.user.id);
+  res.json({
+    success: true,
+    message: 'Content item deleted',
+    data: {}
+  });
+});
+
+module.exports = { listContent, createContent, updateContent, deleteContent};

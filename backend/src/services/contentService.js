@@ -54,4 +54,33 @@ const updateContent = async (id, userId, data) => {
   return updated;
 };
 
-module.exports = { listContent, createContent, updateContent };
+const deleteContent = async (id, userId) => {
+  // Check if the content belongs to the logged-in user
+  const existing = await prisma.contentItem.findFirst({
+    where: { id, userId },
+  });
+
+  if (!existing) {
+    throw {
+      status: 404,
+      message: "Content item not found",
+    };
+  }
+
+  // Delete the content item
+  await prisma.contentItem.delete({
+    where: { id },
+  });
+
+  // Optional: Send a realtime notification
+  await triggerRealtimeNotification(
+    userId,
+    "Content Deleted",
+    `"${existing.title}" has been deleted.`,
+    "PUBLISH_REMINDER"
+  );
+
+  return true;
+};
+
+module.exports = { listContent, createContent, updateContent, deleteContent };
